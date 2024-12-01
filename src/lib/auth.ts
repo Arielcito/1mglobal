@@ -1,11 +1,27 @@
 import { prisma } from "@/app/libs/prismaDB";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { AuthOptions, getServerSession } from "next-auth";
+import { type AuthOptions, getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
 import bcrypt from "bcrypt";
+import type { User } from "@prisma/client";
+
+// Validar variables de entorno requeridas
+const requiredEnvs = {
+  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ?? '',
+  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ?? '',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
+} as const;
+
+// Verificar que todas las variables de entorno necesarias estén presentes
+for (const [key, value] of Object.entries(requiredEnvs)) {
+  if (!value) {
+    throw new Error(`Missing environment variable: ${key}`);
+  }
+}
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -16,45 +32,53 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Credenciales inválidas");
         }
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
+
         if (!user || !user.password) {
           throw new Error("Usuario no encontrado");
         }
+
         const isPasswordCorrect = await bcrypt.compare(
           credentials.password,
           user.password
         );
+
         if (!isPasswordCorrect) {
           throw new Error("Contraseña incorrecta");
         }
-        return user;
+
+        return {
+          ...user,
+          role: user.role
+        };
       },
     }),
     GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      clientId: requiredEnvs.GITHUB_CLIENT_ID,
+      clientSecret: requiredEnvs.GITHUB_CLIENT_SECRET,
     }),
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true, // Permitir vincular cuentas
+      clientId: requiredEnvs.GOOGLE_CLIENT_ID,
+      clientSecret: requiredEnvs.GOOGLE_CLIENT_SECRET,
+      allowDangerousEmailAccountLinking: true,
     }),
     EmailProvider({
       server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT),
+        host: process.env.EMAIL_SERVER_HOST || "",
+        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
         auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
+          user: process.env.EMAIL_SERVER_USER || "",
+          pass: process.env.EMAIL_SERVER_PASSWORD || "",
         },
       },
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM || "noreply@example.com",
     }),
   ],
   pages: {
@@ -68,9 +92,9 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
-        if (account?.provider === "google") {
+        if (account?.provider === "google" && user.email) {
           const existingUser = await prisma.user.findUnique({
-            where: { email: user.email! },
+            where: { email: user.email },
             include: { 
               accounts: true,
               stream: true 
@@ -78,81 +102,71 @@ export const authOptions: AuthOptions = {
           });
 
           if (!existingUser) {
-            // Generar username único
-            let baseUsername = user.name?.replace(/\s+/g, '') || user.email!.split('@')[0];
-            let username = baseUsername;
-            let counter = 1;
-            
-            while (await prisma.user.findUnique({ where: { username } })) {
-              username = `${baseUsername}${counter}`;
-              counter++;
-            }
+            const baseUsername = (user.name?.replace(/\s+/g, '') || user.email.split('@')[0]);
+            const username = await generateUniqueUsername(baseUsername);
 
-            // Crear usuario, cuenta y stream en una transacción
             await prisma.$transaction(async (prisma) => {
               const newUser = await prisma.user.create({
                 data: {
-                  email: user.email!,
-                  name: profile?.name || user.name,
+                  email: user.email,
+                  name: profile?.name || user.name || null,
                   username,
-                  image: profile?.image || user.image,
+                  image: profile?.image || user.image || null,
                   stream: {
                     create: {
-                      name: `${profile?.name || user.name}'s stream`,
+                      name: `${profile?.name || user.name || 'User'}'s stream`,
                     }
                   }
                 },
               });
 
-              // Crear la cuenta asociada
-              await prisma.account.create({
-                data: {
-                  userId: newUser.id,
-                  type: account.type,
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId,
-                  access_token: account.access_token,
-                  expires_at: account.expires_at,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  id_token: account.id_token,
-                  session_state: account.session_state
-                },
-              });
+              if (account) {
+                await prisma.account.create({
+                  data: {
+                    userId: newUser.id,
+                    type: account.type,
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token || null,
+                    expires_at: account.expires_at || null,
+                    token_type: account.token_type || null,
+                    scope: account.scope || null,
+                    id_token: account.id_token || null,
+                    session_state: account.session_state || null
+                  },
+                });
+              }
             });
-          } else if (!existingUser.accounts.some(acc => acc.provider === account.provider)) {
-            // Si el usuario existe pero no tiene una cuenta de Google, crear la cuenta
+          } else if (!existingUser.accounts.some(acc => acc.provider === account.provider) && account) {
             await prisma.account.create({
               data: {
                 userId: existingUser.id,
                 type: account.type,
                 provider: account.provider,
                 providerAccountId: account.providerAccountId,
-                access_token: account.access_token,
-                expires_at: account.expires_at,
-                token_type: account.token_type,
-                scope: account.scope,
-                id_token: account.id_token,
-                session_state: account.session_state
+                access_token: account.access_token || null,
+                expires_at: account.expires_at || null,
+                token_type: account.token_type || null,
+                scope: account.scope || null,
+                id_token: account.id_token || null,
+                session_state: account.session_state || null
               },
             });
 
-            // Actualizar usuario con datos de Google
             await prisma.user.update({
               where: { id: existingUser.id },
               data: {
-                name: profile?.name || user.name,
-                image: profile?.image || user.image,
+                name: profile?.name || user.name || null,
+                image: profile?.image || user.image || null,
               }
             });
           }
 
-          // Crear stream si no existe
-          if (!existingUser?.stream) {
+          if (existingUser && !existingUser.stream) {
             await prisma.stream.create({
               data: {
-                name: `${user.name}'s stream`,
-                userId: existingUser!.id,
+                name: `${user.name || 'User'}'s stream`,
+                userId: existingUser.id,
               }
             });
           }
@@ -163,43 +177,51 @@ export const authOptions: AuthOptions = {
         return false;
       }
     },
-    async session({ session, token, user }) {
+    async session({ session, token }) {
       if (session?.user) {
-        // Obtener el usuario completo de la base de datos
         const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub as string },
+          where: { id: token.sub },
           select: {
             id: true,
             name: true,
             email: true,
             image: true,
-            is_admin: true,
+            role: true,
             username: true
           }
         });
         
-        // Actualizar la sesión con todos los datos necesarios
-        session.user = {
-          ...session.user,
-          ...dbUser,
-          is_admin: dbUser?.is_admin || false
-        };
+        if (dbUser) {
+          session.user = {
+            ...session.user,
+            id: dbUser.id,
+            username: dbUser.username,
+            role: dbUser.role
+          };
+        }
       }
       return session;
     },
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.is_admin = (user as any).is_admin;
-        // Incluir datos adicionales del perfil si es necesario
-        if (profile) {
-          token.name = profile.name;
-          token.picture = profile.image;
-        }
+        token.role = 'is_admin' in user ? (user.is_admin ? 'ADMIN' : 'USER') : 'USER';
       }
       return token;
     },
   },
+};
+
+const generateUniqueUsername = async (baseUsername: string): Promise<string> => {
+  let username = baseUsername;
+  let counter = 1;
+  
+  while (await prisma.user.findUnique({ where: { username } })) {
+    username = `${baseUsername}${counter}`;
+    counter++;
+  }
+  
+  return username;
 };
 
 export const getSelf = async () => {
@@ -217,7 +239,7 @@ export const getSelf = async () => {
       email: true,
       image: true,
       username: true,
-      is_admin: true
+      role: true
     },
   });
 

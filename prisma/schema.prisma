@@ -45,8 +45,8 @@ model User {
   passwordResetTokenExp DateTime?
   username              String         @unique
   full_name             String?
-  role                  String         @default("user")
   created_at            DateTime       @default(now()) @db.Timestamptz(6)
+  role                  String         @default("user")
   accounts              Account[]
   courses               Course[]
   enrollments           Enrollment[]
