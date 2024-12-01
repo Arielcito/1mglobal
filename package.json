@@ -8,13 +8,21 @@
     "start": "next start",
     "lint": "next lint",
     "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook",
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "prisma:studio": "prisma studio",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:pull": "prisma db pull",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:reset": "prisma migrate reset",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:validate": "prisma validate"
   },
   "dependencies": {
     "@livekit/components-react": "^2.6.7",
     "@livekit/components-styles": "^1.1.4",
     "@next-auth/prisma-adapter": "^1.0.7",
-    "@prisma/client": "^5.4.2",
+    "@prisma/client": "^5.8.1",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
@@ -82,5 +90,8 @@
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
+  },
+  "prisma": {
+    "schema": "./prisma/schema.prisma"
   }
 }

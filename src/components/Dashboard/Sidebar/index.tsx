@@ -80,7 +80,7 @@ export const DashboardSidebar = () => {
 
   if (status === 'loading' || !session) return null
 
-  const isAdmin = session.user?.is_admin || false
+  const isAdmin = session.user?.role === 'admin'
 
   return (
     <>

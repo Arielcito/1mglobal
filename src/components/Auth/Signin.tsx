@@ -112,6 +112,44 @@ const Signin = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const result = await signIn("google", {
+        callbackUrl: "/dashboard",
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast({
+          variant: "destructive",
+          title: "Error de autenticación",
+          description: "No se pudo iniciar sesión con Google"
+        });
+        return;
+      }
+
+      if (result?.ok) {
+        toast({
+          title: "¡Bienvenido!",
+          description: "Has iniciado sesión correctamente"
+        });
+        
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 100);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Ocurrió un error al intentar iniciar sesión con Google"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <section className="pb-[110px] pt-[100px] md:pt-[150px] lg:pt-[200px] bg-background">
       <div className="container overflow-hidden lg:max-w-[1250px]">
@@ -227,11 +265,13 @@ const Signin = () => {
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
+                  <span className="sr-only" aria-live="polite">Cargando...</span>
                   <svg 
                     className="animate-spin h-5 w-5 text-white" 
                     xmlns="http://www.w3.org/2000/svg" 
                     fill="none" 
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <circle 
                       className="opacity-25" 
@@ -254,6 +294,19 @@ const Signin = () => {
               )}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-base text-gray-400">
+              ¿No tienes una cuenta?{" "}
+              <Link
+                href="/auth/signup"
+                className="text-primary hover:underline"
+                aria-label="Crear una cuenta nueva"
+              >
+                Regístrate aquí
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </section>

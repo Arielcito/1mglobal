@@ -2,9 +2,21 @@ import bcrypt from "bcrypt";
 import NextAuth, { type AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/app/libs/prismaDB";
+import GoogleProvider from "next-auth/providers/google";
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+if (!googleClientId || !googleClientSecret) {
+  throw new Error('Faltan las credenciales de Google en las variables de entorno');
+}
 
 export const authOptions: AuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -40,7 +52,6 @@ export const authOptions: AuthOptions = {
             throw new Error("Este usuario no tiene contraseña configurada");
           }
 
-          console.log("🔐 Verificando contraseña...");
           const isCorrectPassword = await bcrypt.compare(
             credentials.password,
             user.password
@@ -51,15 +62,7 @@ export const authOptions: AuthOptions = {
             throw new Error("Email o contraseña incorrectos");
           }
 
-          console.log("✅ Autenticación exitosa para:", user.email);
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.username,
-            username: user.username,
-            is_admin: user.is_admin,
-          };
-          
+          return user;
         } catch (error) {
           console.error("❌ Error en authorize:", error);
           throw error;
@@ -79,16 +82,44 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub as string;
-        session.user.is_admin = token.is_admin as boolean;
+        session.user.role = token.role as string;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.is_admin = user.is_admin;
+        token.role = user.role;
       }
       return token;
-    }
+    },
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        try {
+          // Aquí puedes crear o actualizar el usuario en tu base de datos
+          const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: user.name,
+              email: user.email,
+              // Puedes generar una contraseña aleatoria o manejar esto de otra manera
+              password: crypto.randomUUID(),
+              provider: "google"
+            })
+          });
+
+          if (!response.ok) {
+            return false;
+          }
+        } catch (error) {
+          console.error("Error during Google sign in:", error);
+          return false;
+        }
+      }
+      return true;
+    },
   }
 };
 
