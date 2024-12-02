@@ -10,8 +10,6 @@ import type { User } from "@prisma/client";
 
 // Validar variables de entorno requeridas
 const requiredEnvs = {
-  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ?? '',
-  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ?? '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
 } as const;
@@ -59,10 +57,6 @@ export const authOptions: AuthOptions = {
           role: user.role
         };
       },
-    }),
-    GitHubProvider({
-      clientId: requiredEnvs.GITHUB_CLIENT_ID,
-      clientSecret: requiredEnvs.GITHUB_CLIENT_SECRET,
     }),
     GoogleProvider({
       clientId: requiredEnvs.GOOGLE_CLIENT_ID,
