@@ -18,7 +18,7 @@ const ClassPage = () => {
   const { data: classes, isLoading, error } = useClass(params.courseId as string)
   
   const classId = Number(params.classId)
-  const currentClass = classes?.find(clase => clase.class_id === classId)
+  const currentClass = classes?.find(clase => clase.classId === classId)
 
   const handleBackClick = () => {
     router.back()
@@ -62,11 +62,12 @@ const ClassPage = () => {
       <div className="flex flex-col h-full">
         {/* Video Section */}
         <div className="relative w-full aspect-video bg-slate-950">
-          {currentClass.recording_url ? (
+          {currentClass.recordingUrl ? (
             <iframe
               title="Video de la clase"
-              src={currentClass.recording_url}
+              src={`${currentClass.recordingUrl}?autoplay=0&controls=1&modestbranding=1&rel=0&color=ac985f&playsinline=1&showinfo=0`}
               className="absolute inset-0 w-full h-full"
+              loading="lazy"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
@@ -100,13 +101,13 @@ const ClassPage = () => {
           <div className="space-y-2">
             {classes?.map((clase) => (
               <Link
-                key={clase.class_id}
-                href={`/courses/${params.courseId}/classes/${clase.class_id}`}
+                key={clase.classId}
+                href={`/courses/${params.courseId}/classes/${clase.classId}`}
               >
                 <Card
                   className={cn(
                     "p-4 cursor-pointer hover:bg-gray-100 transition-colors mb-4",
-                    clase.class_id === classId && "bg-gray-100"
+                    clase.classId === classId && "bg-gray-100"
                   )}
                 >
                   <div className="space-y-2">

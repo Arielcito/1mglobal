@@ -11,8 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Video, Copy, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
-import type { Session } from "next-auth";
-
+import api from '@/app/libs/axios'
 interface StreamFormData {
   title: string;
   description: string;
@@ -24,7 +23,10 @@ interface IngressResponse {
 }
 
 interface StreamModalProps {
-  session: Session;
+  session: {
+    id: string;
+    name: string | null;
+  };
 }
 
 const StreamModal = ({ session }: StreamModalProps) => {
@@ -65,37 +67,64 @@ const StreamModal = ({ session }: StreamModalProps) => {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/create_ingress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: session?.user.id,
-          room_name: formData.title,
-          ingress_type: "rtmp",
+      const { data } = await api.post('/api/stream/create', {
+        room_name: formData.title,
+        metadata: {
+          creator_identity: session.id,
           title: formData.title,
           description: formData.description,
-          metadata: {
-            creator_identity: formData.title,
-            enable_chat: true,
-            allow_participation: true,
-          },
-        }),
+          enable_chat: true,
+          allow_participation: true,
+        }
       });
-      const data = await res.json();
       
       setIngressResponse({
-        streamKey: data.ingress.streamKey,
-        serverUrl: data.ingress.url,
+        streamKey: data.token,
+        serverUrl: data.ws_url,
       });
+
+      await api.post('/api/stream/live', {
+        name: formData.title,
+        title: formData.title,
+        description: formData.description,
+        userId: session.id,
+      });
+
+      toast.success('Stream creado exitosamente');
     } catch (error) {
+      console.error('Error al crear el stream:', error);
       toast.error("No se pudo crear el stream. Intente nuevamente.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleEndStream = async () => {
+    try {
+      await api.delete('/stream/rooms');
+      
+      await api.post('/api/stream/live', {
+        isLive: false,
+        userId: session.id,
+      });
+
+      toast.success('Stream finalizado');
+    } catch (error) {
+      console.error('Error al finalizar el stream:', error);
+      toast.error('Error al finalizar el stream');
+    }
+  };
+
+  const handleCloseModal = async () => {
+    if (ingressResponse) {
+      await handleEndStream();
+    }
+    setIngressResponse(null);
+    setFormData({ title: "", description: "" });
+  };
+
   return (
-    <Dialog>
+    <Dialog onOpenChange={(open) => !open && handleCloseModal()}>
       <DialogTrigger asChild>
         <Button 
           variant="default" 

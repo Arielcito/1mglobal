@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/context/AuthContext"
 import { redirect } from "next/navigation"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -53,6 +53,12 @@ interface CreateCourseData {
 }
 
 export default function UploadClassPage() {
+  const { user, isLoading: isLoadingAuth } = useAuth()
+  
+  if (!isLoadingAuth && !user) {
+    redirect('/auth/signin')
+  }
+
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [isUploading, setIsUploading] = useState(false)
@@ -134,7 +140,7 @@ export default function UploadClassPage() {
         },
         body: JSON.stringify({
           ...formData,
-          duration: formData.duration ? parseInt(formData.duration.toString()) : null,
+          duration: formData.duration ? Number.parseInt(formData.duration.toString()) : null,
           videoUrl,
         }),
       });

@@ -5,7 +5,7 @@ import { Video, BookOpen, Key, Upload, Menu } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
-import { useSession } from "next-auth/react"
+import { useAuth } from '@/context/AuthContext'
 import { useQuery } from 'react-query'
 import {
   Sidebar,
@@ -40,7 +40,7 @@ type MenuValues = typeof menuPaths[MenuKeys]
 export const DashboardSidebar = () => {
   const router = useRouter()
   const pathname = usePathname()
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const { openMobile, setOpenMobile } = useSidebar()
 
   const activeMenu = React.useMemo(() => {
@@ -56,7 +56,7 @@ export const DashboardSidebar = () => {
       return res.json()
     },
     {
-      enabled: !!session?.user?.id
+      enabled: !!user?.id
     }
   )
 
@@ -78,9 +78,9 @@ export const DashboardSidebar = () => {
     }
   }
 
-  if (status === 'loading' || !session) return null
+  if (isLoading || !user) return null
 
-  const isAdmin = session.user?.role === 'admin'
+  const isAdmin = user.isAdmin || false
 
   return (
     <>
@@ -116,7 +116,7 @@ export const DashboardSidebar = () => {
                   <Video className="mr-3 h-5 w-5" />
                   Live
                 </div>
-                {streamData?.some(stream => stream.userId === session.user.id) && (
+                {streamData?.some(stream => stream.userId === user.id) && (
                   <Badge 
                     variant="destructive" 
                     className="ml-2 animate-pulse bg-primary text-primary-foreground"

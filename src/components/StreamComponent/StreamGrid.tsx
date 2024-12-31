@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from 'next/navigation'
 import { Skeleton } from "@/components/ui/skeleton"
-
+import api from '@/app/libs/axios'
 interface Stream {
   id: string
   title: string
@@ -36,9 +36,8 @@ export const StreamGrid = () => {
   const { data: streams, isLoading } = useQuery<Stream[]>(
     'active-streams',
     async () => {
-      const res = await fetch('/api/streams/live')
-      if (!res.ok) throw new Error('Failed to fetch streams')
-      return res.json()
+      const { data } = await api.get('/api/stream/live');
+      return data;
     }
   )
 

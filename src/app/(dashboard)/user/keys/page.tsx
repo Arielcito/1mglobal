@@ -4,7 +4,7 @@ import Urlcard from "@/components/Card/Urlcard";
 import Streamcard from "@/components/Card/Streamcard";
 import { STREAM_KEYS } from "@/lib/constants";
 import { useQuery } from "react-query";
-import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/context/AuthContext";
 
 const fetchStreamData = async (userId: string) => {
   const response = await fetch(`/api/stream/${userId}`)
@@ -19,7 +19,7 @@ const fetchStreamData = async (userId: string) => {
 }
 
 export default function KeysPage() {
-  const user = useUser()
+  const {user} = useAuth()
   
   const { data: streamData, isLoading, refetch } = useQuery(
     STREAM_KEYS.serverUrl(user?.id ?? ''),

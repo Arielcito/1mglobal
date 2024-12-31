@@ -1,15 +1,14 @@
 "use client";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { useAuth } from '@/context/AuthContext';
 
 const Signin = () => {
   const router = useRouter();
-  const { status } = useSession();
+  const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState({
@@ -17,16 +16,6 @@ const Signin = () => {
     password: "",
     remember: false,
   });
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      router.push('/dashboard');
-    }
-  }, [status, router]);
-
-  if (status === 'loading') {
-    return null;
-  }
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,66 +28,16 @@ const Signin = () => {
           title: "Error de validación",
           description: "Por favor complete todos los campos"
         });
-        setIsLoading(false);
         return;
       }
 
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-        callbackUrl: "/dashboard"
+      await login(data.email, data.password);
+      
+      toast({
+        title: "¡Bienvenido!",
+        description: "Has iniciado sesión correctamente"
       });
-
-      if (result?.error) {
-        // Intentamos parsear el error por si viene como JSON
-        try {
-          const errorData = JSON.parse(result.error);
-          toast({
-            variant: "destructive",
-            title: "Error de autenticación",
-            description: errorData.message || errorData.error || "Credenciales inválidas"
-          });
-        } catch {
-          // Si no es JSON, mostramos el mensaje directo
-          let errorMessage = result.error;
-          let errorTitle = "Error de autenticación";
-
-          // Mapeamos mensajes de error comunes
-          switch (result.error) {
-            case "CredentialsSignin":
-              errorMessage = "Email o contraseña incorrectos";
-              break;
-            case "Email not verified":
-              errorMessage = "Por favor verifica tu email antes de iniciar sesión";
-              errorTitle = "Email no verificado";
-              break;
-            case "User not found":
-              errorMessage = "No existe una cuenta con este email";
-              break;
-            // Puedes agregar más casos según los errores que devuelva tu backend
-          }
-
-          toast({
-            variant: "destructive",
-            title: errorTitle,
-            description: errorMessage
-          });
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      if (result?.ok) {
-        toast({
-          title: "¡Bienvenido!",
-          description: "Has iniciado sesión correctamente"
-        });
-        
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 100);
-      }
+      
     } catch (error) {
       toast({
         variant: "destructive",
@@ -106,44 +45,6 @@ const Signin = () => {
         description: error instanceof Error 
           ? error.message 
           : "Ocurrió un error inesperado. Por favor, intente nuevamente"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true);
-      const result = await signIn("google", {
-        callbackUrl: "/dashboard",
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast({
-          variant: "destructive",
-          title: "Error de autenticación",
-          description: "No se pudo iniciar sesión con Google"
-        });
-        return;
-      }
-
-      if (result?.ok) {
-        toast({
-          title: "¡Bienvenido!",
-          description: "Has iniciado sesión correctamente"
-        });
-        
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 100);
-      }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Ocurrió un error al intentar iniciar sesión con Google"
       });
     } finally {
       setIsLoading(false);
@@ -265,13 +166,12 @@ const Signin = () => {
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
-                  <span className="sr-only" aria-live="polite">Cargando...</span>
                   <svg 
                     className="animate-spin h-5 w-5 text-white" 
                     xmlns="http://www.w3.org/2000/svg" 
                     fill="none" 
                     viewBox="0 0 24 24"
-                    aria-hidden="true"
+                    aria-label="Cargando..."
                   >
                     <circle 
                       className="opacity-25" 
@@ -294,19 +194,6 @@ const Signin = () => {
               )}
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-base text-gray-400">
-              ¿No tienes una cuenta?{" "}
-              <Link
-                href="/auth/signup"
-                className="text-primary hover:underline"
-                aria-label="Crear una cuenta nueva"
-              >
-                Regístrate aquí
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </section>

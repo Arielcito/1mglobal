@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge, Clock } from 'lucide-react'
 import { useQuery } from 'react-query'
 import { CourseDetailSkeleton } from '@/components/Courses/CourseDetailSkeleton'
+import api from '@/app/libs/axios'
 
 // Interfaces
 interface Instructor {
@@ -16,14 +17,14 @@ interface Instructor {
 }
 
 interface Class {
-  class_id: string
+  classId: string
   title: string
   description: string
   duration: string
   status: string
-  recording_url?: string
-  is_live: boolean
-  scheduled_at?: Date
+  recordingUrl?: string
+  isLive: boolean
+  scheduledAt?: Date
   order: number
 }
 
@@ -43,21 +44,20 @@ interface Course {
 
 // Funciones para fetch de datos
 const fetchCourseWithClasses = async (courseId: string): Promise<Course> => {
-  // Primero obtenemos todos los cursos
-  const coursesResponse = await fetch('/api/courses')
-  if (!coursesResponse.ok) throw new Error('Error al cargar los cursos')
-  const courses = await coursesResponse.json()
-  
-  // Encontramos el curso específico
-  const course = courses.find((c: Course) => c.course_id === parseInt(courseId))
-  if (!course) throw new Error('Curso no encontrado')
-  
-  // Obtenemos las clases para este curso
-  const classesResponse = await fetch(`/api/classes?courseId=${courseId}`)
-  if (!classesResponse.ok) throw new Error('Error al cargar las clases')
-  const classes = await classesResponse.json()
-  
-  return { ...course, classes }
+  try {
+    // Obtenemos el curso
+    const courseResponse = await api.get(`/api/courses/${courseId}`)
+    const course = courseResponse.data
+    
+    // Obtenemos las clases para este curso
+    const classesResponse = await api.get(`/api/classes/course/${courseId}`)
+    const classes = classesResponse.data
+    
+    return { ...course, classes }
+  } catch (error) {
+    console.error('Error al cargar el curso y sus clases:', error)
+    throw new Error('Error al cargar el curso y sus clases')
+  }
 }
 
 const CourseDetailPage = () => {
@@ -124,15 +124,15 @@ const CourseDetailPage = () => {
           <div className="grid gap-3 sm:gap-4">
             {course.classes.map((clase) => (
               <Card 
-                key={clase.class_id}
+                key={clase.classId}
                 className="cursor-pointer hover:shadow-md transition-all"
-                onClick={() => handleClassClick(clase.class_id)}
+                onClick={() => handleClassClick(clase.classId)}
                 tabIndex={0}
                 role="button"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    handleClassClick(clase.class_id)
+                    handleClassClick(clase.classId)
                   }
                 }}
               >
@@ -155,8 +155,9 @@ const CourseDetailPage = () => {
                       <Clock className="h-4 w-4 shrink-0" />
                       <span>{clase.duration}</span>
                     </div>
-                    {clase.is_live && (
+                    {clase.isLive && (
                       <Badge 
+                        key={`badge-${clase.classId}`}
                         className="animate-pulse"
                       >
                         En vivo

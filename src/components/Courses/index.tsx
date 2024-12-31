@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge'
 import { useQuery } from 'react-query'
 import { CoursesSkeleton } from './CoursesSkeleton'
+import api from '@/app/libs/axios'
 
 type Class = {
   id: number
@@ -35,15 +36,21 @@ type Course = {
 
 // Funciones para fetch de datos
 const fetchCourses = async (): Promise<Course[]> => {
-  const response = await fetch('/api/courses')
-  if (!response.ok) throw new Error('Error al cargar los cursos')
-  return response.json()
+  try {
+    const { data } = await api.get('/api/courses')
+    return data
+  } catch (error) {
+    throw new Error('Error al cargar los cursos')
+  }
 }
 
 const fetchClassesForCourse = async (courseId: number): Promise<Class[]> => {
-  const response = await fetch(`/api/classes?courseId=${courseId}`)
-  if (!response.ok) throw new Error('Error al cargar las clases')
-  return response.json()
+  try {
+    const { data } = await api.get(`/api/classes/course/${courseId}`)
+    return data
+  } catch (error) {
+    throw new Error('Error al cargar las clases')
+  }
 }
 
 export function CoursesGrid() {
@@ -96,56 +103,57 @@ export function CoursesGrid() {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2" role="list">
+    <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
       {coursesWithClasses?.map((course) => (
-        <Card 
+        <li 
           key={course.course_id}
           className="cursor-pointer hover:shadow-lg transition-shadow"
           onClick={() => handleCourseClick(course.course_id)}
           onKeyDown={(e) => handleKeyDown(e, course.course_id)}
           tabIndex={0}
-          role="listitem"
           aria-label={`Curso: ${course.title}`}
         >
-          <CardHeader className="p-0">
-            <div className="relative aspect-video">
-              <Image
-                src={course.image_url}
-                alt={course.title}
-                fill
-                className="object-cover rounded-t-lg"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start mb-2">
-              <CardTitle className="text-xl">{course.title}</CardTitle>
-              {course.category && (
-                <Badge>{course.category.name}</Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">{course.description}</p>
-            <div className="mt-2">
-              <Badge variant="outline" className="mr-2">
-                {course.level}
-              </Badge>
-              <Badge variant="secondary">
-                {course.classes.length} clases
-              </Badge>
-            </div>
-          </CardContent>
-          <CardFooter className="p-4 pt-0 flex justify-between">
-            <div className="flex gap-2">
-              {course.classes.some(c => c.is_live) && (
-                <Badge variant="destructive">EN VIVO</Badge>
-              )}
-              {course.classes.some(c => c.scheduled_at) && (
-                <Badge variant="secondary">Próximas clases</Badge>
-              )}
-            </div>
-          </CardFooter>
-        </Card>
+          <Card>
+            <CardHeader className="p-0">
+              <div className="relative aspect-video">
+                <Image
+                  src={course.image_url}
+                  alt={course.title}
+                  fill
+                  className="object-cover rounded-t-lg"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <CardTitle className="text-xl">{course.title}</CardTitle>
+                {course.category && (
+                  <Badge>{course.category.name}</Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">{course.description}</p>
+              <div className="mt-2">
+                <Badge variant="outline" className="mr-2">
+                  {course.level}
+                </Badge>
+                <Badge variant="secondary">
+                  {course.classes.length} clases
+                </Badge>
+              </div>
+            </CardContent>
+            <CardFooter className="p-4 pt-0 flex justify-between">
+              <div className="flex gap-2">
+                {course.classes.some(c => c.is_live) && (
+                  <Badge variant="destructive">EN VIVO</Badge>
+                )}
+                {course.classes.some(c => c.scheduled_at) && (
+                  <Badge variant="secondary">Próximas clases</Badge>
+                )}
+              </div>
+            </CardFooter>
+          </Card>
+        </li>
       ))}
-    </div>
+    </ul>
   )
 } 
