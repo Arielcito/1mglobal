@@ -77,9 +77,9 @@ const StreamModal = ({ session }: StreamModalProps) => {
           allow_participation: true,
         }
       });
-      
+      console.log(data)
       setIngressResponse({
-        streamKey: data.token,
+        streamKey: data.ingress.stream_key,
         serverUrl: data.ws_url,
       });
 
