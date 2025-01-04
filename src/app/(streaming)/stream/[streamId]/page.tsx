@@ -1,20 +1,19 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
- 
 import { StreamPlayer, StreamSkeleton } from '@/components/StreamComponent/StreamPlayer'
 import { useQuery } from 'react-query'
 import StreamingLayout from '../../layout'
 import type { Stream } from '@/types/stream'
 import api from '@/app/libs/axios'
 
-export default function StreamPage() {
+const StreamContent = () => {
   const params = useParams()
   const { user } = useAuth()
   const streamId = params.streamId as string
 
-  // Query para obtener los datos del stream
   const { data: streamData, isLoading: streamLoading } = useQuery<Stream>(
     ['stream', streamId],
     async () => {
@@ -28,7 +27,6 @@ export default function StreamPage() {
     }
   )
 
-  // Query para obtener el token del viewer
   const { data: tokenData, isLoading: tokenLoading } = useQuery(
     ['stream-token', streamData?.name],
     async () => {
@@ -64,17 +62,25 @@ export default function StreamPage() {
   const isHost = streamData?.userId === user?.id
 
   return (
+    <StreamPlayer
+      streamId={streamData.id}
+      token={tokenData.token}
+      hostName={streamData.user.name}
+      hostImage={streamData.user.image}
+      title={streamData.title}
+      description={streamData.description}
+      viewerCount={0}
+      isHost={isHost}
+    />
+  )
+}
+
+export default function StreamPage() {
+  return (
     <StreamingLayout>
-      <StreamPlayer
-        streamId={streamData.id}
-        token={tokenData.token}
-        hostName={streamData.user.name}
-        hostImage={streamData.user.image}
-        title={streamData.title}
-        description={streamData.description}
-        viewerCount={0}
-        isHost={isHost}
-      />
+      <Suspense fallback={<StreamSkeleton />}>
+        <StreamContent />
+      </Suspense>
     </StreamingLayout>
   )
 }

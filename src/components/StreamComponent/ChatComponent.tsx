@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 interface ChatMessageProps {
   message: ReceivedChatMessage;
@@ -22,6 +22,27 @@ interface ChatMessageProps {
 function ChatMessage({ message }: ChatMessageProps) {
   const { localParticipant } = useLocalParticipant();
   const isLocalParticipant = localParticipant.identity === message.from?.identity;
+  const [userData, setUserData] = useState<{ name: string; image: string | null } | null>(null);
+  
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        if (message.from?.identity) {
+          const response = await fetch(`/api/users/${message.from.identity}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserData(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, [message.from?.identity]);
+
+  const displayName = userData?.name || message.from?.name || "Usuario Anónimo";
 
   return (
     <div className={cn(
@@ -29,9 +50,9 @@ function ChatMessage({ message }: ChatMessageProps) {
       isLocalParticipant ? "flex-row-reverse" : "flex-row"
     )}>
       <Avatar className="h-8 w-8">
-        <AvatarImage src={message.from?.metadata ? JSON.parse(message.from.metadata).avatarUrl : undefined} />
+        <AvatarImage src={userData?.image || undefined} />
         <AvatarFallback className="bg-primary/10 text-primary">
-          {message.from?.identity?.[0]?.toUpperCase() ?? "?"}
+          {displayName[0]?.toUpperCase() ?? "?"}
         </AvatarFallback>
       </Avatar>
 
@@ -40,7 +61,7 @@ function ChatMessage({ message }: ChatMessageProps) {
         isLocalParticipant ? "items-end" : "items-start"
       )}>
         <span className="text-xs text-zinc-400">
-          {message.from?.identity ?? "Unknown"}
+          {displayName}
         </span>
         <div className={cn(
           "rounded-lg px-3 py-2 text-sm",
@@ -59,8 +80,7 @@ export function ChatComponent() {
   const [draft, setDraft] = useState("");
   const { chatMessages, send } = useChat();
   const { metadata } = useRoomInfo();
-
-  console.log('Raw metadata:', metadata);
+  const { localParticipant } = useLocalParticipant();
   
   const { enable_chat: chatEnabled } = (
     metadata ? JSON.parse(metadata) : {}

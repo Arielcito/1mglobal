@@ -9,12 +9,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Video, Copy, CheckCircle } from "lucide-react";
+import { Video, Copy, CheckCircle, ImageIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from '@/app/libs/axios'
+import { useUploadThing } from "@/lib/uploadthing";
+import Image from "next/image";
+
 interface StreamFormData {
   title: string;
   description: string;
+  thumbnailUrl: string;
 }
 
 interface StreamResponse {
@@ -59,6 +63,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
   const [formData, setFormData] = React.useState<StreamFormData>({
     title: "",
     description: "",
+    thumbnailUrl: "",
   });
   const [loading, setLoading] = React.useState(false);
   const [ingressResponse, setIngressResponse] = React.useState<IngressResponse | null>(null);
@@ -66,6 +71,8 @@ const StreamModal = ({ session }: StreamModalProps) => {
     serverUrl: false,
     streamKey: false,
   });
+
+  const { startUpload, isUploading } = useUploadThing("thumbnailUploader");
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -75,6 +82,26 @@ const StreamModal = ({ session }: StreamModalProps) => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      const uploadedFiles = await startUpload(Array.from(files));
+      if (!uploadedFiles) return;
+
+      const thumbnailUrl = uploadedFiles[0].url;
+      setFormData(prev => ({
+        ...prev,
+        thumbnailUrl
+      }));
+      toast.success("Miniatura subida exitosamente");
+    } catch (error) {
+      console.error("Error al subir la miniatura:", error);
+      toast.error("Error al subir la miniatura");
+    }
   };
 
   const handleCopy = async (text: string, type: 'serverUrl' | 'streamKey') => {
@@ -113,6 +140,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
         name: data.stream.name,
         title: data.stream.title,
         description: data.stream.description,
+        thumbnailUrl: formData.thumbnailUrl,
         userId: session.id,
       });
 
@@ -146,7 +174,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
       await handleEndStream();
     }
     setIngressResponse(null);
-    setFormData({ title: "", description: "" });
+    setFormData({ title: "", description: "", thumbnailUrl: "" });
   };
 
   return (
@@ -197,6 +225,42 @@ const StreamModal = ({ session }: StreamModalProps) => {
                 className="w-full min-h-[100px]"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Miniatura del Stream
+              </label>
+              <div className="flex flex-col gap-4">
+                {formData.thumbnailUrl && (
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                    <Image
+                      src={formData.thumbnailUrl}
+                      alt="Miniatura del stream"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center justify-center w-full">
+                  <label htmlFor="thumbnail" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <ImageIcon className="w-8 h-8 mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {isUploading ? "Subiendo..." : "Haz clic para subir una miniatura"}
+                      </p>
+                    </div>
+                    <input
+                      id="thumbnail"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleThumbnailUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-2">

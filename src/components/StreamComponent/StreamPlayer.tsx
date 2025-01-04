@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils"
 import {
   LiveKitRoom,
   VideoConference,
-  Chat,
   RoomAudioRenderer,
   ControlBar,
   LayoutContextProvider,
@@ -20,6 +19,7 @@ import {
 import '@livekit/components-styles'
 import { ChatComponent } from "./ChatComponent"
 import VideoComponent from "./VideoComponent"
+import { toast } from "react-hot-toast"
 
 interface StreamPlayerProps {
   streamId: string
@@ -69,6 +69,7 @@ export const StreamPlayer = ({
   isHost = false,
 }: StreamPlayerProps) => {
   const [showInfo, setShowInfo] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(true)
   const router = useRouter()
 
   const handleBackClick = () => {
@@ -77,6 +78,10 @@ export const StreamPlayer = ({
 
   const handleToggleInfo = () => {
     setShowInfo(!showInfo)
+  }
+
+  if (!token || !process.env.NEXT_PUBLIC_LIVEKIT_URL) {
+    return <StreamSkeleton />
   }
 
   return (
@@ -88,91 +93,73 @@ export const StreamPlayer = ({
         video={isHost}
         audio={isHost}
         className="h-full"
+        onConnected={() => setIsConnecting(false)}
+        onError={(error) => {
+          console.error('Error en LiveKitRoom:', error)
+          toast.error('Error al conectar con el servidor de streaming.')
+        }}
+        options={{
+          adaptiveStream: true,
+          dynacast: true,
+          stopLocalTrackOnUnpublish: true,
+          disconnectOnPageLeave: true
+        }}
       >
         <div className="h-screen w-full relative flex flex-col">
           {/* Mobile Back Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 left-4 z-50"
+            className="absolute top-4 left-4 z-50 lg:hidden"
             onClick={handleBackClick}
           >
             <ChevronLeft className="h-6 w-6 text-white" />
           </Button>
 
-          {/* Info Toggle Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 z-50 lg:hidden"
-            onClick={handleToggleInfo}
-          >
-            {showInfo ? (
-              <X className="h-6 w-6 text-white" />
-            ) : (
-              <Info className="h-6 w-6 text-white" />
-            )}
-          </Button>
-
-          <div className="flex-1 flex flex-col lg:grid lg:grid-cols-4 gap-2 p-2">
+          <div className="flex flex-col lg:grid lg:grid-cols-4 gap-2 h-full">
+            {/* Video Column */}
             <div className="lg:col-span-3 flex flex-col gap-2">
-              {/* Video Container */}
-              <Card className="aspect-video w-full relative">
-                <VideoComponent isHost={isHost} />
+              {/* Video Player */}
+              <Card className="aspect-video relative overflow-hidden rounded-none lg:rounded-md">
+                {isConnecting ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black">
+                    <p className="text-white">Conectando al stream...</p>
+                  </div>
+                ) : (
+                  <VideoComponent isHost={isHost} />
+                )}
               </Card>
 
-              {/* Stream Info - Mobile */}
-              <div className={cn(
-                "fixed inset-x-0 top-[56.25vw] bottom-0 bg-background/95 backdrop-blur-sm z-40 transition-transform duration-300 lg:hidden overflow-y-auto",
-                showInfo ? "translate-y-0" : "translate-y-full"
-              )}>
-                <Card className="rounded-t-xl">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-12 w-12 ring-2 ring-primary">
-                        <AvatarImage src={hostImage} alt={hostName} />
-                        <AvatarFallback>{hostName[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h2 className="text-2xl font-bold">{title}</h2>
-                        <div className="flex items-center gap-2 my-2">
-                          <Badge variant="destructive" className="animate-pulse">
-                            EN VIVO
-                          </Badge>
-                          <p className="text-sm text-muted-foreground">{hostName}</p>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {description}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Stream Info - Desktop */}
-              <Card className="hidden lg:block">
+              {/* Stream Info */}
+              <Card className="lg:hidden">
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-12 w-12 ring-2 ring-primary">
-                        <AvatarImage src={hostImage} alt={hostName} />
-                        <AvatarFallback>{hostName[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h2 className="text-2xl font-bold">{title}</h2>
-                        <div className="flex items-center gap-2 my-2">
-                          <Badge variant="destructive" className="animate-pulse">
-                            EN VIVO
-                          </Badge>
-                          <p className="text-sm text-muted-foreground">{hostName}</p>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {description}
-                        </p>
-                      </div>
+                  <div className="flex items-start gap-4">
+                    <Avatar>
+                      <AvatarImage src={hostImage} />
+                      <AvatarFallback>{hostName[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold">{title}</h2>
+                      <p className="text-sm text-muted-foreground">{hostName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {viewerCount} espectadores
+                      </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleToggleInfo}
+                    >
+                      {showInfo ? (
+                        <X className="h-5 w-5" />
+                      ) : (
+                        <Info className="h-5 w-5" />
+                      )}
+                    </Button>
                   </div>
+                  {showInfo && (
+                    <p className="text-sm mt-4">{description}</p>
+                  )}
                 </CardContent>
               </Card>
             </div>

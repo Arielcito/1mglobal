@@ -15,9 +15,9 @@ export default function StreamingLayout({
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <html lang="en" className="h-screen">
-          <body className="h-screen overflow-hidden">{children}</body>
-        </html>
+        <div className="h-screen overflow-hidden">
+          {children}
+        </div>
       </QueryClientProvider>
     </AuthProvider>
   )
