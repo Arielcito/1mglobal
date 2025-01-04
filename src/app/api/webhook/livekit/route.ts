@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma"
 import { WebhookReceiver } from "livekit-server-sdk"
 import { headers } from "next/headers"
 import type { NextRequest } from "next/server"
-
 import { NextResponse } from "next/server"
 
 const receiver = new WebhookReceiver(
@@ -15,44 +14,56 @@ export async function POST(request: NextRequest) {
     console.log('📥 Webhook request received from LiveKit');
     const body = await request.text()
     const headerPayload = headers()
-    const authorization = headerPayload.get('Authorization')
+    
+    try {
+      // Obtener los headers necesarios
+      const authHeader = request.headers.get('authorization');
+      if (!authHeader) {
+        console.error('❌ No authorization header present');
+        return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
+      }
 
-    if(!authorization || !authorization.startsWith('Bearer ')) {
-      console.log('❌ Unauthorized webhook request');
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      // Verificar y procesar el webhook
+      const event = await receiver.receive(body, authHeader);
+      console.log('📦 Webhook event received:', event.event);
+
+      // Manejar eventos de sala
+      if (event.event === 'room_started') {
+        console.log('🎥 Room started:', event.room);
+        // Aquí puedes agregar la lógica para manejar el inicio de una sala
+      }
+
+      if(event.event === 'ingress_started') {
+        console.log('🎥 Stream started:', event.ingressInfo?.ingressId);
+        await prisma.stream.update({
+          where: {
+            ingressId: event.ingressInfo?.ingressId
+          },
+          data: {
+            isLive: true
+          }
+        })
+        console.log('✅ Database updated - Stream is now live');
+      }
+
+      if(event.event === 'ingress_ended') {
+        console.log('🛑 Stream ended:', event.ingressInfo?.ingressId);
+        await prisma.stream.update({
+          where: {
+            ingressId: event.ingressInfo?.ingressId
+          },
+          data: {
+            isLive: false
+          }
+        })
+        console.log('✅ Database updated - Stream is now offline');
+      }
+
+      return NextResponse.json({ message: 'Webhook processed successfully' })
+    } catch (verifyError) {
+      console.error('❌ Error verifying webhook:', verifyError);
+      return NextResponse.json({ message: 'Invalid webhook signature' }, { status: 401 })
     }
-
-    console.log('🔐 Authorization valid, processing webhook...');
-    const event = await receiver.receive(body, authorization);
-    console.log('📦 Webhook event received:', event.event);
-
-    if(event.event === 'ingress_started') {
-      console.log('🎥 Stream started:', event.ingressInfo?.ingressId);
-      await prisma.stream.update({
-        where: {
-          ingressId: event.ingressInfo?.ingressId
-        },
-        data: {
-          isLive: true
-        }
-      })
-      console.log('✅ Database updated - Stream is now live');
-    }
-
-    if(event.event === 'ingress_ended') {
-      console.log('🛑 Stream ended:', event.ingressInfo?.ingressId);
-      await prisma.stream.update({
-        where: {
-          ingressId: event.ingressInfo?.ingressId
-        },
-        data: {
-          isLive: false
-        }
-      })
-      console.log('✅ Database updated - Stream is now offline');
-    }
-
-    return NextResponse.json({ message: 'Webhook received' })
   } catch (error) {
     console.error('❌ Error processing webhook:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
