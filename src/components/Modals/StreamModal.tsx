@@ -17,6 +17,32 @@ interface StreamFormData {
   description: string;
 }
 
+interface StreamResponse {
+  room_name: string;
+  token: string;
+  ws_url: string;
+  ingress: {
+    ingressId: string;
+    url: string;
+    streamKey: string;
+  };
+  stream: {
+    id: string;
+    name: string;
+    thumbnailUrl: string | null;
+    ingressId: string;
+    serverUrl: string;
+    streamKey: string;
+    isLive: boolean;
+    isChatEnabled: boolean;
+    isChatDelayed: boolean;
+    userId: string;
+    createdAt: string;
+    description: string;
+    title: string;
+  };
+}
+
 interface IngressResponse {
   streamKey: string;
   serverUrl: string;
@@ -67,7 +93,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
     setLoading(true);
 
     try {
-      const { data } = await api.post('/api/stream/create', {
+      const { data } = await api.post<StreamResponse>('/api/stream/create', {
         room_name: formData.title,
         metadata: {
           creator_identity: session.id,
@@ -77,16 +103,16 @@ const StreamModal = ({ session }: StreamModalProps) => {
           allow_participation: true,
         }
       });
-      console.log(data)
+
       setIngressResponse({
-        streamKey: data.ingress.stream_key,
-        serverUrl: data.ws_url,
+        streamKey: data.ingress.streamKey,
+        serverUrl: data.ingress.url,
       });
 
       await api.post('/api/stream/live', {
-        name: formData.title,
-        title: formData.title,
-        description: formData.description,
+        name: data.stream.name,
+        title: data.stream.title,
+        description: data.stream.description,
         userId: session.id,
       });
 
