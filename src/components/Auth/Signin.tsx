@@ -171,6 +171,7 @@ const Signin = () => {
                     xmlns="http://www.w3.org/2000/svg" 
                     fill="none" 
                     viewBox="0 0 24 24"
+                    title="Cargando"
                     aria-label="Cargando..."
                   >
                     <circle 
@@ -193,6 +194,13 @@ const Signin = () => {
                 "Iniciar Sesión"
               )}
             </button>
+
+            <p className="mt-4 text-center text-sm text-gray-400">
+              ¿No tienes una cuenta?{" "}
+              <Link href="/auth/signup" className="text-primary hover:underline">
+                Regístrate aquí
+              </Link>
+            </p>
           </form>
         </div>
       </div>
