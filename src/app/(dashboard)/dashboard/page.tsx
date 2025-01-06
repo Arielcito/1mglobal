@@ -5,22 +5,8 @@ import { StreamGrid } from '@/components/StreamComponent/StreamGrid'
 import { useAuth } from '@/context/AuthContext'
 
 export default function DashboardPage() {
-  const { user, isLoading, refreshUserState } = useAuth()
-
-  useEffect(() => {
-    console.log('🔄 Estado del Dashboard:', { isLoading, user: !!user });
-  }, [isLoading, user]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (user) {
-        refreshUserState()
-      }
-    }, 60000)
-
-    return () => clearInterval(interval)
-  }, [user, refreshUserState])
-
+  const { user, isLoading } = useAuth()
+    
   if (isLoading) {
     console.log('⌛ Mostrando estado de carga');
     return (

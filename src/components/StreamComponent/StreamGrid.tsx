@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from 'next/navigation'
 import { Skeleton } from "@/components/ui/skeleton"
 import api from '@/app/libs/axios'
+
 interface Stream {
   id: string
   title: string
@@ -38,14 +39,23 @@ export const StreamGrid = () => {
     async () => {
       const { data } = await api.get('/api/stream/live');
       return data;
+    },
+    {
+      refetchInterval: 30000,
+      refetchOnWindowFocus: false,
+      staleTime: 10000,
+      retry: 1,
+      onError: (error) => {
+        console.error('Error al cargar streams:', error)
+      }
     }
   )
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="p-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={`skeleton-${i}`} className="p-4">
             <StreamSkeleton />
           </Card>
         ))}
@@ -64,7 +74,7 @@ export const StreamGrid = () => {
           <CardHeader className="space-y-0 pb-2">
             <div className="flex items-center space-x-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={stream.user.image} />
+                <AvatarImage src={stream.user.image} alt={stream.user.name} />
                 <AvatarFallback>{stream.user.name[0]}</AvatarFallback>
               </Avatar>
               <CardTitle className="text-sm font-medium">
@@ -74,7 +84,6 @@ export const StreamGrid = () => {
           </CardHeader>
           <CardContent>
             <div className="aspect-video bg-muted rounded-lg relative mb-2">
-              {/* Preview placeholder */}
               <div className="absolute top-2 left-2">
                 {stream.isLive && (
                   <Badge variant="destructive" className="animate-pulse">
