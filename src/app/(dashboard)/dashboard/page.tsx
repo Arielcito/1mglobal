@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
-    
+
   if (isLoading) {
     console.log('⌛ Mostrando estado de carga');
     return (
@@ -20,8 +20,6 @@ export default function DashboardPage() {
     console.log('❌ No hay usuario, retornando null');
     return null
   }
-
-  console.log('✅ Renderizando dashboard para:', { id: user.id, email: user.email });
   return (
     <div className="space-y-4 md:space-y-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div>

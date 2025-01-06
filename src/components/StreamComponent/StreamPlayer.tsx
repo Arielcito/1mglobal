@@ -8,19 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChevronLeft, Info, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import {
   LiveKitRoom,
-  VideoConference,
-  RoomAudioRenderer,
-  ControlBar,
   LayoutContextProvider,
 } from '@livekit/components-react'
 import '@livekit/components-styles'
 import { ChatComponent } from "./ChatComponent"
 import VideoComponent from "./VideoComponent"
 import { toast } from "react-hot-toast"
-
+import Image from "next/image"
 interface StreamPlayerProps {
   streamId: string
   token: string
@@ -122,7 +118,8 @@ export const StreamPlayer = ({
               {/* Video Player */}
               <Card className="aspect-video relative overflow-hidden rounded-none lg:rounded-md">
                 {isConnecting ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
+                    <Image src={"/images/logo/logo-white.png"} alt="Logo" width={173} height={34} />
                     <p className="text-white">Conectando al stream...</p>
                   </div>
                 ) : (
@@ -131,7 +128,7 @@ export const StreamPlayer = ({
               </Card>
 
               {/* Stream Info */}
-              <Card className="lg:hidden">
+              <Card className="">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <Avatar>

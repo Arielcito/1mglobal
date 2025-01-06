@@ -23,11 +23,13 @@ export type RoomMetadata = {
   allow_participation: boolean;
 };
 
-export type ParticipantMetadata = {
+export interface ParticipantMetadata {
+  name?: string;
+  avatarUrl?: string;
+  isHost?: boolean;
   hand_raised: boolean;
   invited_to_stage: boolean;
-  avatarUrl?: string;
-};
+}
 
 export type Config = {
   ws_url: string;

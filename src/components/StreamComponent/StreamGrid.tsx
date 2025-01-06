@@ -14,6 +14,7 @@ interface Stream {
   isLive: boolean
   userId: string
   ingressId: string
+  thumbnailUrl: string | null
   user: {
     name: string
     image: string
@@ -38,6 +39,7 @@ export const StreamGrid = () => {
     'active-streams',
     async () => {
       const { data } = await api.get('/api/stream/live');
+      console.log('🔄 Streams cargados:', data);
       return data;
     },
     {
@@ -55,7 +57,7 @@ export const StreamGrid = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={`skeleton-${i}`} className="p-4">
+          <Card key={`stream-skeleton-${crypto.randomUUID()}`} className="p-4">
             <StreamSkeleton />
           </Card>
         ))}
@@ -84,6 +86,17 @@ export const StreamGrid = () => {
           </CardHeader>
           <CardContent>
             <div className="aspect-video bg-muted rounded-lg relative mb-2">
+              {stream.thumbnailUrl ? (
+                <img
+                  src={stream.thumbnailUrl}
+                  alt={stream.title}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-muted-foreground">Sin miniatura</span>
+                </div>
+              )}
               <div className="absolute top-2 left-2">
                 {stream.isLive && (
                   <Badge variant="destructive" className="animate-pulse">

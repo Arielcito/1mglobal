@@ -153,32 +153,8 @@ const StreamModal = ({ session }: StreamModalProps) => {
     }
   };
 
-  const handleEndStream = async () => {
-    try {
-      await api.delete('/stream/rooms');
-      
-      await api.post('/api/stream/live', {
-        isLive: false,
-        userId: session.id,
-      });
-
-      toast.success('Stream finalizado');
-    } catch (error) {
-      console.error('Error al finalizar el stream:', error);
-      toast.error('Error al finalizar el stream');
-    }
-  };
-
-  const handleCloseModal = async () => {
-    if (ingressResponse) {
-      await handleEndStream();
-    }
-    setIngressResponse(null);
-    setFormData({ title: "", description: "", thumbnailUrl: "" });
-  };
-
   return (
-    <Dialog onOpenChange={(open) => !open && handleCloseModal()}>
+    <Dialog onOpenChange={(open) => !open}>
       <DialogTrigger asChild>
         <Button 
           variant="default" 
