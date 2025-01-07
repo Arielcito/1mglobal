@@ -42,13 +42,18 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
 
   const tracks = useTracks(
     [
-      { source: Track.Source.Camera, withPlaceholder: false },
-      { source: Track.Source.ScreenShare, withPlaceholder: false },
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: true },
       { source: Track.Source.Microphone, withPlaceholder: false },
       { source: Track.Source.ScreenShareAudio, withPlaceholder: false },
     ],
     { 
-      updateOnlyOn: [RoomEvent.TrackSubscribed, RoomEvent.TrackUnsubscribed],
+      updateOnlyOn: [
+        RoomEvent.TrackSubscribed, 
+        RoomEvent.TrackUnsubscribed,
+        RoomEvent.TrackPublished,
+        RoomEvent.TrackUnpublished,
+      ],
     }
   );
 
@@ -74,6 +79,13 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       track.participant.identity === hostParticipant?.identity && 
       (track.source === Track.Source.Microphone || track.source === Track.Source.ScreenShareAudio)
   );
+
+  useEffect(() => {
+    console.log('Tracks actualizados:', tracks);
+    console.log('Participantes:', participants);
+    console.log('Host participant:', hostParticipant);
+    console.log('Host video track:', hostVideoTrack);
+  }, [tracks, participants, hostParticipant, hostVideoTrack]);
 
   const getParticipantMetadata = (participant: Participant) => {
     try {
