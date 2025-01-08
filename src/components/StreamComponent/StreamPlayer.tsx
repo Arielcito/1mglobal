@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronLeft, Info, X } from "lucide-react"
+import { ChevronLeft, Info, X, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   LiveKitRoom,
@@ -102,15 +102,28 @@ export const StreamPlayer = ({
         }}
       >
         <div className="h-screen w-full relative flex flex-col">
-          {/* Mobile Back Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 left-4 z-50 lg:hidden"
-            onClick={handleBackClick}
-          >
-            <ChevronLeft className="h-6 w-6 text-white" />
-          </Button>
+          {/* Navegación */}
+          <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+            {/* Botón Volver */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-black/50 hover:bg-black/70 text-white"
+              onClick={handleBackClick}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+
+            {/* Botón Inicio */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-black/50 hover:bg-black/70 text-white"
+              onClick={() => router.push('/')}
+            >
+              <Home className="h-6 w-6" />
+            </Button>
+          </div>
 
           <div className="flex flex-col lg:grid lg:grid-cols-4 gap-2 h-full">
             {/* Video Column */}
