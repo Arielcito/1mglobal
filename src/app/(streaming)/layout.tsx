@@ -10,7 +10,9 @@ export default function StreamingLayout({
   children,
 }: {
   children: React.ReactNode
-}) {
+}) {  
+
+  
   const queryClient = new QueryClient()
   return (
     <AuthProvider>
