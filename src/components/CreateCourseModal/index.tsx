@@ -23,7 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import type { CreateCourseInput } from '@/types/course'
 import type { CourseLevel } from '@/types/course'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Loader2 } from 'lucide-react'
 import { UploadButton } from "@uploadthing/react";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import Image from "next/image";
@@ -54,6 +54,7 @@ const generateImageName = (title: string, file: File): string => {
 
 export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [newCategory, setNewCategory] = useState('')
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
@@ -167,10 +168,17 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
     }
 
     try {
+      console.log('Intentando crear curso con datos:', {
+        ...formData,
+        price: Number(formData.price)
+      });
+
       const { data } = await api.post('/api/courses', {
         ...formData,
         price: Number(formData.price)
       })
+
+      console.log('Respuesta exitosa:', data);
 
       onCreateCourse(data)
       toast({
@@ -179,11 +187,36 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
       })
       handleCleanForm()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Error al crear curso:', {
+        error,
+        response: error instanceof Error && 'response' in error ? (error as any).response?.data : undefined,
+        status: error instanceof Error && 'response' in error ? (error as any).response?.status : undefined
+      });
+
+      let errorMessage = 'Error al crear el curso';
+
+      if (error instanceof Error) {
+        if ('response' in error) {
+          const axiosError = error as any;
+          if (axiosError.response?.data?.message) {
+            errorMessage = axiosError.response.data.message;
+          } else if (axiosError.response?.data?.error) {
+            errorMessage = axiosError.response.data.error;
+          } else if (axiosError.response?.data?.details?.[0]?.message) {
+            errorMessage = axiosError.response.data.details[0].message;
+          } else if (axiosError.response?.status === 500) {
+            errorMessage = 'Error interno del servidor. Por favor, inténtalo de nuevo más tarde.';
+          }
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.response?.data?.details?.[0]?.message || error.response?.data?.error || 'Error al crear el curso'
+        description: errorMessage
       })
       setIsLoading(false)
     }
@@ -213,6 +246,7 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
 
   const handleFileUploadComplete = async (res: { url: string }[]) => {
     setFormData(prev => ({ ...prev, thumbnail_url: res[0].url }));
+    setIsUploadingImage(false)
     toast({
       title: "Éxito",
       description: "Imagen subida exitosamente"
@@ -220,6 +254,7 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
   };
 
   const handleFileUploadError = (error: Error) => {
+    setIsUploadingImage(false)
     toast({
       variant: "destructive",
       title: "Error",
@@ -245,12 +280,12 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
           <DialogTitle>Crear Nuevo Curso</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="title">Título</Label>
             <Input
@@ -366,7 +401,14 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
           <div className="space-y-2">
             <Label>Imagen de portada</Label>
             <div className="flex flex-col gap-4">
-              {formData.thumbnail_url ? (
+              {isUploadingImage ? (
+                <div className="flex items-center justify-center h-[200px] border-2 border-dashed rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Subiendo imagen...</p>
+                  </div>
+                </div>
+              ) : formData.thumbnail_url ? (
                 <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                   <Image
                     src={formData.thumbnail_url}
@@ -389,6 +431,7 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
                   endpoint="thumbnailUploader"
                   onClientUploadComplete={handleFileUploadComplete}
                   onUploadError={handleFileUploadError}
+                  onUploadBegin={() => setIsUploadingImage(true)}
                   appearance={{
                     button: "ut-ready:bg-primary ut-ready:text-white ut-ready:hover:bg-primary/90",
                     allowedContent: "text-gray-500 text-sm",
@@ -412,17 +455,27 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 sticky bottom-0 bg-background pt-4 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isLoading}
+              disabled={isLoading || isUploadingImage}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Creando...' : 'Crear Curso'}
+            <Button 
+              type="submit" 
+              disabled={isLoading || isUploadingImage || !formData.thumbnail_url}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creando...
+                </>
+              ) : (
+                'Crear Curso'
+              )}
             </Button>
           </div>
         </form>

@@ -56,6 +56,27 @@ const Signin = () => {
       <div className="container overflow-hidden lg:max-w-[1250px]">
         <div className="wow fadeInUp mx-auto w-full max-w-[520px] rounded-lg bg-black px-6 py-10 shadow-card-dark sm:p-[10px] flex flex-col items-center">
           <Image src={"/images/logo/logo-white.png"} alt="Logo" width={173} height={34} />
+          <Link
+            href="https://1mglobal.net"
+            className="mb-6 mt-4 inline-flex items-center gap-2 text-primary hover:underline"
+            aria-label="Volver a la página principal"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
+            Volver a la página principal
+          </Link>
           <div className="text-center">
             <h3 className="mb-[10px] text-2xl font-bold text-white sm:text-[28px]">
               Inicia sesión en tu cuenta

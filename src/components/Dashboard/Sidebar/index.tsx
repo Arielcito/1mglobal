@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Video, BookOpen, Key, Upload, Menu } from 'lucide-react'
+import { Video, BookOpen, Key, Upload, Menu, GraduationCap } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +32,8 @@ const menuPaths = {
   '/dashboard': 'live',
   '/classes': 'classes',
   '/user/keys': 'keys',
-  '/upload': 'upload'
+  '/upload': 'upload',
+  '/courses': 'courses'
 } as const
 
 type MenuKeys = keyof typeof menuPaths
@@ -74,6 +75,9 @@ export const DashboardSidebar = () => {
         break
       case 'upload':
         router.push('/upload')
+        break
+      case 'courses':
+        router.push('/courses')
         break
     }
   }
@@ -140,6 +144,17 @@ export const DashboardSidebar = () => {
 
             {isAdmin && (
               <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => handleMenuClick('courses')}
+                    isActive={activeMenu === 'courses'}
+                    className="flex items-center w-full px-6 py-3 text-base md:text-lg"
+                  >
+                    <GraduationCap className="mr-3 h-5 w-5" />
+                    Cursos
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={() => handleMenuClick('keys')}
