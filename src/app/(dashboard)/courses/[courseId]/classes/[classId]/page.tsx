@@ -12,6 +12,46 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
 
+const getYouTubeVideoId = (url: string) => {
+  if (!url) return null
+  
+  // Patrones comunes de URLs de YouTube
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
+    /^([^&\?\/]+)$/  // Para cuando solo se proporciona el ID
+  ]
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match) return match[1]
+  }
+
+  return null
+}
+
+const VideoPlayer = ({ url }: { url: string }) => {
+  const videoId = getYouTubeVideoId(url)
+  
+  if (!videoId) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <p className="text-primary font-medium">URL de video no válida</p>
+      </div>
+    )
+  }
+
+  return (
+    <iframe
+      title="Video de la clase"
+      src={`https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`}
+      className="absolute inset-0 w-full h-full"
+      loading="lazy"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+    />
+  )
+}
+
 const ClassPage = () => {
   const params = useParams()
   const router = useRouter()
@@ -63,14 +103,7 @@ const ClassPage = () => {
         {/* Video Section */}
         <div className="relative w-full aspect-video bg-slate-950">
           {currentClass.recordingUrl ? (
-            <iframe
-              title="Video de la clase"
-              src={`${currentClass.recordingUrl}?autoplay=0&controls=1&modestbranding=1&rel=0&color=ac985f&playsinline=1&showinfo=0`}
-              className="absolute inset-0 w-full h-full"
-              loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            <VideoPlayer url={currentClass.recordingUrl} />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <p className="text-primary font-medium">No hay video disponible</p>

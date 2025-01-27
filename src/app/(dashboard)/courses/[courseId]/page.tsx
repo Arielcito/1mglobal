@@ -122,51 +122,59 @@ const CourseDetailPage = () => {
             Contenido del curso
           </h2>
           <div className="grid gap-3 sm:gap-4">
-            {course.classes.map((clase) => (
-              <Card 
-                key={clase.classId}
-                className="cursor-pointer hover:shadow-md transition-all"
-                onClick={() => handleClassClick(clase.classId)}
-                tabIndex={0}
-                role="button"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    handleClassClick(clase.classId)
-                  }
-                }}
-              >
-                <CardHeader className="p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="space-y-1">
-                      <CardTitle className="text-base sm:text-lg">
-                        {clase.title}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {clase.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <Separator />
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 shrink-0" />
-                      <span>{clase.duration}</span>
-                    </div>
-                    {clase.isLive && (
-                      <Badge 
-                        key={`badge-${clase.classId}`}
-                        className="animate-pulse"
-                      >
-                        En vivo
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
+            {!course.classes?.length ? (
+              <Card className="p-4">
+                <p className="text-center text-muted-foreground">
+                  No hay clases disponibles en este momento
+                </p>
               </Card>
-            ))}
+            ) : (
+              course.classes.map((clase) => (
+                <Card 
+                  key={clase.classId}
+                  className="cursor-pointer hover:shadow-md transition-all"
+                  onClick={() => handleClassClick(clase.classId)}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleClassClick(clase.classId)
+                    }
+                  }}
+                >
+                  <CardHeader className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="space-y-1">
+                        <CardTitle className="text-base sm:text-lg">
+                          {clase.title}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {clase.description}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <Separator />
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 shrink-0" />
+                        <span>{clase.duration}</span>
+                      </div>
+                      {clase.isLive && (
+                        <Badge 
+                          key={`badge-${clase.classId}`}
+                          className="animate-pulse"
+                        >
+                          En vivo
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>
