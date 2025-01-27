@@ -22,7 +22,6 @@ export const DashboardHeader = () => {
 
   const userName = user.name || 'User Name'
   const userImage = user.image || '/default-avatar.png'
-  console.log(user)
   return (
     <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b border-stroke-dark bg-zinc from-zinc-900 to-zinc-950 py-6">
       <div className="flex items-center space-x-4">
@@ -36,7 +35,8 @@ export const DashboardHeader = () => {
         <div className=" md:block">
           <StreamModal session={{
             id: user.id,
-            name: user.name || null
+            name: user.name || null,
+            isAdmin: user.isAdmin || false
           }} />
         </div>
 

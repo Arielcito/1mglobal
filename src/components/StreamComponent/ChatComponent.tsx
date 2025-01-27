@@ -1,6 +1,7 @@
 "use client";
 
 import type { RoomMetadata } from "@/lib/controller";
+import api from '@/app/libs/axios';
 import {
   type ReceivedChatMessage,
   useChat,
@@ -28,11 +29,8 @@ function ChatMessage({ message }: ChatMessageProps) {
     const fetchUserData = async () => {
       try {
         if (message.from?.identity) {
-          const response = await fetch(`/api/users/${message.from.identity}`);
-          if (response.ok) {
-            const data = await response.json();
-            setUserData(data);
-          }
+          const { data } = await api.get(`/api/users/${message.from.identity}`);
+          setUserData(data);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);

@@ -2,7 +2,6 @@ import { db } from "@/lib/db"
 import { NextResponse } from "next/server"
 
 export async function GET() {
-  console.log("[STREAMS_GET] Fetching live streams")
   
   try {
     const streams = await db.stream.findMany({

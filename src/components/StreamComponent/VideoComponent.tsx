@@ -10,6 +10,11 @@ import {
   useParticipants,
   useRoomContext,
   useTracks,
+  TrackReference,
+  ControlBar,
+  GridLayout,
+  ParticipantTile,
+  RoomAudioRenderer,
 } from '@livekit/components-react';
 import { 
   ConnectionState, 
@@ -21,6 +26,7 @@ import {
 } from 'livekit-client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Wifi, WifiOff, Mic, MicOff, Video, VideoOff, Users } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -34,6 +40,23 @@ import { StopStreamResponse } from "@/types/api";
 interface VideoComponentProps {
   isHost?: boolean;
 }
+
+interface ParticipantState {
+  isSpeaking: boolean;
+  connectionQuality: ConnectionQuality;
+  audioLevel: number;
+  hasAudioTrack: boolean;
+  hasVideoTrack: boolean;
+  isScreenSharing: boolean;
+}
+
+type ParticipantEvent = 
+  | 'isSpeakingChanged'
+  | 'connectionQualityChanged'
+  | 'trackMuted'
+  | 'trackUnmuted'
+  | 'trackPublished'
+  | 'trackUnpublished';
 
 export default function VideoComponent({ isHost = false }: VideoComponentProps) {
   const { metadata, state: roomState } = useRoomContext();
@@ -173,21 +196,14 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       (track.source === Track.Source.Microphone || track.source === Track.Source.ScreenShareAudio)
   );
 
-  useEffect(() => {
-    console.log('Tracks actualizados:', tracks);
-    console.log('Participantes:', participants);
-    console.log('Host participant:', hostParticipant);
-    console.log('Host video track:', hostVideoTrack);
-  }, [tracks, participants, hostParticipant, hostVideoTrack]);
-
-  const getParticipantMetadata = (participant: Participant) => {
+  const getParticipantMetadata = useCallback((participant: Participant) => {
     try {
       return participant.metadata ? JSON.parse(participant.metadata) as ParticipantMetadata : null;
     } catch (error) {
       console.error('Error al parsear metadata del participante:', error);
       return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     const updateParticipantState = () => {
@@ -195,6 +211,9 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       for (const participant of participants) {
         const hasAudioTrack = Object.values(participant.audioTrackPublications).length > 0;
         const hasVideoTrack = Object.values(participant.videoTrackPublications).length > 0;
+        const isScreenSharing = Object.values(participant.videoTrackPublications).some(
+          pub => pub.source === Track.Source.ScreenShare
+        );
         
         newStates.set(participant.identity, {
           isSpeaking: participant.isSpeaking,
@@ -202,6 +221,7 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
           audioLevel: participant.audioLevel,
           hasAudioTrack,
           hasVideoTrack,
+          isScreenSharing,
         });
       }
       setParticipantStates(newStates);
@@ -209,24 +229,33 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
 
     updateParticipantState();
 
+    const events: ParticipantEvent[] = [
+      'isSpeakingChanged',
+      'connectionQualityChanged',
+      'trackMuted',
+      'trackUnmuted',
+      'trackPublished',
+      'trackUnpublished',
+    ];
+
+    const handleEvent = () => updateParticipantState();
+
     for (const participant of participants) {
-      participant.on('isSpeakingChanged', updateParticipantState);
-      participant.on('connectionQualityChanged', updateParticipantState);
-      participant.on('trackMuted', updateParticipantState);
-      participant.on('trackUnmuted', updateParticipantState);
+      for (const event of events) {
+        participant.on(event, handleEvent);
+      }
     }
 
     return () => {
       for (const participant of participants) {
-        participant.off('isSpeakingChanged', updateParticipantState);
-        participant.off('connectionQualityChanged', updateParticipantState);
-        participant.off('trackMuted', updateParticipantState);
-        participant.off('trackUnmuted', updateParticipantState);
+        for (const event of events) {
+          participant.off(event, handleEvent);
+        }
       }
     };
   }, [participants]);
 
-  const getConnectionQualityIcon = (quality: ConnectionQuality) => {
+  const getConnectionQualityIcon = useCallback((quality: ConnectionQuality) => {
     switch (quality) {
       case ConnectionQuality.Excellent:
         return <Wifi className="h-4 w-4 text-green-500" />;
@@ -237,7 +266,26 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       default:
         return <WifiOff className="h-4 w-4 text-gray-500" />;
     }
-  };
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Error al cambiar el modo pantalla completa:', error);
+      toast.error('No se pudo cambiar el modo pantalla completa');
+    }
+  }, []);
+
+  const toggleLayout = useCallback(() => {
+    setShowGrid(prev => !prev);
+  }, []);
 
   // Inicialización mejorada de tracks locales
   useEffect(() => {
@@ -338,6 +386,10 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       <div className="relative h-full w-full bg-black flex items-center justify-center">
         <div className="text-center p-4">
           <p className="text-white mb-4">Esperando al streamer...</p>
+          <div className="flex items-center justify-center gap-2">
+            <Users className="h-5 w-5 text-white" />
+            <span className="text-white">{participants.length} espectadores</span>
+          </div>
         </div>
       </div>
     );
@@ -356,52 +408,85 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
         </div>
       )}
 
-      {/* Vista principal del streamer */}
-      <div className="relative w-full h-full">
-        {hostVideoTrack.publication && (
-          <VideoTrack
-            trackRef={hostVideoTrack}
-            className={cn(
-              "h-full w-full",
-              hostVideoTrack.source === Track.Source.ScreenShare ? "object-contain" : "object-cover"
-            )}
-          />
-        )}
-
-        {/* Información del streamer */}
-        <div className="absolute bottom-4 left-4 flex items-center gap-4">
-          <Avatar className="h-12 w-12 border-2 border-primary">
-            <AvatarImage src={hostMetadata?.avatarUrl} />
-            <AvatarFallback>{hostParticipant.identity[0] ?? "?"}</AvatarFallback>
-          </Avatar>
-          
-          <div className="flex flex-col">
-            <span className="text-white font-semibold">
-              {hostMetadata?.name || hostParticipant.identity}
-            </span>
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-white" />
-              <span className="text-white text-sm">
-                {participants.length} espectadores
-              </span>
-            </div>
-          </div>
-
-          {hostState && (
-            <div className="flex items-center gap-2 bg-black/60 p-2 rounded-lg">
-              {getConnectionQualityIcon(hostState.connectionQuality)}
-              {hostState.hasAudioTrack ? 
-                <Mic className="h-4 w-4 text-green-500" /> : 
-                <MicOff className="h-4 w-4 text-red-500" />
-              }
-              {hostState.hasVideoTrack ? 
-                <Video className="h-4 w-4 text-green-500" /> : 
-                <VideoOff className="h-4 w-4 text-red-500" />
-              }
-            </div>
-          )}
-        </div>
+      {/* Controles de vista */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="bg-black/60 hover:bg-black/80 text-white"
+          onClick={toggleLayout}
+        >
+          {showGrid ? <Rows className="h-5 w-5" /> : <LayoutGrid className="h-5 w-5" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="bg-black/60 hover:bg-black/80 text-white"
+          onClick={toggleFullscreen}
+        >
+          {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+        </Button>
       </div>
+
+      {showGrid ? (
+        <GridLayout
+          tracks={tracks}
+          className="h-full w-full"
+        >
+          <ParticipantTile />
+        </GridLayout>
+      ) : (
+        <div className="relative w-full h-full">
+          {hostVideoTrack.publication && (
+            <VideoTrack
+              trackRef={hostVideoTrack}
+              className={cn(
+                "h-full w-full",
+                hostVideoTrack.source === Track.Source.ScreenShare ? "object-contain" : "object-cover"
+              )}
+            />
+          )}
+
+          {/* Información del streamer */}
+          <div className="absolute bottom-4 left-4 flex items-center gap-4">
+            <Avatar className="h-12 w-12 border-2 border-primary">
+              <AvatarImage src={hostMetadata?.avatarUrl} />
+              <AvatarFallback>{hostParticipant.identity[0] ?? "?"}</AvatarFallback>
+            </Avatar>
+            
+            <div className="flex flex-col">
+              <span className="text-white font-semibold">
+                {hostMetadata?.name || hostParticipant.identity}
+              </span>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-white" />
+                <span className="text-white text-sm">
+                  {participants.length} espectadores
+                </span>
+              </div>
+            </div>
+
+            {hostState && (
+              <div className="flex items-center gap-2 bg-black/60 p-2 rounded-lg">
+                {getConnectionQualityIcon(hostState.connectionQuality)}
+                {hostState.hasAudioTrack ? 
+                  <Mic className="h-4 w-4 text-green-500" /> : 
+                  <MicOff className="h-4 w-4 text-red-500" />
+                }
+                {hostState.hasVideoTrack ? 
+                  <Video className="h-4 w-4 text-green-500" /> : 
+                  <VideoOff className="h-4 w-4 text-red-500" />
+                }
+                {hostState.isScreenSharing && (
+                  <Badge variant="secondary" className="text-xs">
+                    Compartiendo pantalla
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {hostAudioTrack?.publication && (
         <AudioTrack 
@@ -410,6 +495,7 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
         />
       )}
 
+      <RoomAudioRenderer />
       <StartAudio label="Haz clic para activar el audio" />
 
       {/* Controles de transmisión para el host */}

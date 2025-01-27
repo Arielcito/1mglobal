@@ -1,23 +1,13 @@
 import { AccessToken } from 'livekit-server-sdk';
+import api from '@/app/libs/axios';
 
 export async function getViewerToken(roomName: string, identity: string) {
   try {
-    const response = await fetch('/api/stream/viewer-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        room_name: roomName,
-        identity: identity,
-      }),
+    const { data } = await api.post('/api/stream/viewer-token', {
+      room_name: roomName,
+      identity: identity,
     });
 
-    if (!response.ok) {
-      throw new Error('Error al obtener el token');
-    }
-
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error al obtener el token:', error);
@@ -27,22 +17,11 @@ export async function getViewerToken(roomName: string, identity: string) {
 
 export async function getHostToken(roomName: string, identity: string) {
   try {
-    const response = await fetch('/api/stream/host-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        room_name: roomName,
-        identity: identity,
-      }),
+    const { data } = await api.post('/api/stream/host-token', {
+      room_name: roomName,
+      identity: identity,
     });
 
-    if (!response.ok) {
-      throw new Error('Error al obtener el token del host');
-    }
-
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error al obtener el token del host:', error);
