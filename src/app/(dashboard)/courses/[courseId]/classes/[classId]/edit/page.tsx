@@ -18,31 +18,34 @@ import {
 } from "@/components/ui/select"
 import { Label } from '@/components/ui/label'
 
-interface Course {
+interface Class {
+  class_id: number
   course_id: number
   title: string
   description: string
-  instructor_id: string
-  category_id?: number
-  image_url?: string
-  price: number
-  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
+  scheduled_at?: string
+  is_live: boolean
+  recording_url?: string
+  content?: string
+  duration?: number
+  order: number
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 }
 
-export default function EditCoursePage() {
+export default function EditClassPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const courseId = params.courseId as string
-  const [formData, setFormData] = useState<Partial<Course>>({})
+  const classId = params.classId as string
+  const [formData, setFormData] = useState<Partial<Class>>({})
   const [isLoading, setIsLoading] = useState(false)
 
-  const { data: course } = useQuery<Course>({
-    queryKey: ['course', courseId],
+  const { data: classData } = useQuery<Class>({
+    queryKey: ['class', classId],
     queryFn: async () => {
-      const { data } = await api.get(`/api/courses/${courseId}`)
+      const { data } = await api.get(`/api/classes/${classId}`)
       return data
     },
     onSuccess: (data) => {
@@ -55,15 +58,15 @@ export default function EditCoursePage() {
     setIsLoading(true)
 
     try {
-      await api.put(`/api/courses/${courseId}`, formData)
-      await queryClient.invalidateQueries(['courses'])
-      await queryClient.invalidateQueries(['course', courseId])
+      await api.put(`/api/classes/${classId}`, formData)
+      await queryClient.invalidateQueries(['classes'])
+      await queryClient.invalidateQueries(['class', classId])
       
       toast({
-        title: "Curso actualizado",
+        title: "Clase actualizada",
         description: "Los cambios han sido guardados exitosamente"
       })
-      router.push('/courses')
+      router.push(`/courses/${courseId}/classes`)
     } catch (error) {
       toast({
         variant: "destructive",
@@ -85,12 +88,19 @@ export default function EditCoursePage() {
     }))
   }
 
+  const handleDateChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      scheduled_at: value
+    }))
+  }
+
   return (
     <div className="container mx-auto py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Editar Curso</CardTitle>
-          <CardDescription>Modifica los detalles del curso</CardDescription>
+          <CardTitle>Editar Clase</CardTitle>
+          <CardDescription>Modifica los detalles de la clase</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -101,7 +111,7 @@ export default function EditCoursePage() {
                 name="title"
                 value={formData.title || ''}
                 onChange={handleInputChange}
-                placeholder="Título del curso"
+                placeholder="Título de la clase"
                 required
               />
             </div>
@@ -113,72 +123,88 @@ export default function EditCoursePage() {
                 name="description"
                 value={formData.description || ''}
                 onChange={handleInputChange}
-                placeholder="Descripción del curso"
+                placeholder="Descripción de la clase"
                 required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Precio</Label>
+                <Label htmlFor="scheduled_at">Fecha programada</Label>
                 <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  value={formData.price || ''}
+                  id="scheduled_at"
+                  name="scheduled_at"
+                  type="datetime-local"
+                  value={formData.scheduled_at?.slice(0, 16) || ''}
                   onChange={handleInputChange}
-                  placeholder="99.99"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="duration">Duración (minutos)</Label>
+                <Input
+                  id="duration"
+                  name="duration"
+                  type="number"
+                  value={formData.duration || ''}
+                  onChange={handleInputChange}
+                  placeholder="60"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="order">Orden</Label>
+                <Input
+                  id="order"
+                  name="order"
+                  type="number"
+                  value={formData.order || ''}
+                  onChange={handleInputChange}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="level">Nivel</Label>
+                <Label htmlFor="status">Estado</Label>
                 <Select
-                  value={formData.level}
-                  onValueChange={(value: Course['level']) => 
-                    setFormData(prev => ({ ...prev, level: value }))
+                  value={formData.status}
+                  onValueChange={(value: Class['status']) => 
+                    setFormData(prev => ({ ...prev, status: value }))
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona el nivel" />
+                    <SelectValue placeholder="Selecciona el estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="BEGINNER">Principiante</SelectItem>
-                    <SelectItem value="INTERMEDIATE">Intermedio</SelectItem>
-                    <SelectItem value="ADVANCED">Avanzado</SelectItem>
+                    <SelectItem value="DRAFT">Borrador</SelectItem>
+                    <SelectItem value="PUBLISHED">Publicado</SelectItem>
+                    <SelectItem value="ARCHIVED">Archivado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Estado</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: Course['status']) => 
-                  setFormData(prev => ({ ...prev, status: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona el estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DRAFT">Borrador</SelectItem>
-                  <SelectItem value="PUBLISHED">Publicado</SelectItem>
-                  <SelectItem value="ARCHIVED">Archivado</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="recording_url">URL de la grabación</Label>
+              <Input
+                id="recording_url"
+                name="recording_url"
+                value={formData.recording_url || ''}
+                onChange={handleInputChange}
+                placeholder="https://ejemplo.com/grabacion.mp4"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="image_url">URL de la imagen</Label>
-              <Input
-                id="image_url"
-                name="image_url"
-                value={formData.image_url || ''}
+              <Label htmlFor="content">Contenido adicional</Label>
+              <Textarea
+                id="content"
+                name="content"
+                value={formData.content || ''}
                 onChange={handleInputChange}
-                placeholder="https://ejemplo.com/imagen.jpg"
+                placeholder="Contenido o recursos adicionales para la clase"
               />
             </div>
 
@@ -186,7 +212,7 @@ export default function EditCoursePage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push('/courses')}
+                onClick={() => router.push(`/courses/${courseId}/classes`)}
               >
                 Cancelar
               </Button>

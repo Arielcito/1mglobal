@@ -80,10 +80,6 @@ export function ChatComponent() {
   const { metadata } = useRoomInfo();
   const { localParticipant } = useLocalParticipant();
   
-  const { enable_chat: chatEnabled } = (
-    metadata ? JSON.parse(metadata) : {}
-  ) as RoomMetadata;
-
   const messages = useMemo(() => {
     const timestamps = chatMessages.map((msg) => msg.timestamp);
     return chatMessages.filter(
@@ -122,8 +118,7 @@ export function ChatComponent() {
       <div className="border-t border-zinc-800 p-4">
         <div className="flex gap-2">
           <Input
-            disabled={!chatEnabled}
-            placeholder={chatEnabled ? "Escribe un mensaje..." : "Chat deshabilitado"}
+            placeholder="Escribe un mensaje..."
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -131,7 +126,7 @@ export function ChatComponent() {
           />
           <Button
             size="icon"
-            disabled={!chatEnabled || !draft.trim()}
+            disabled={!draft.trim()}
             onClick={handleSend}
             className="shrink-0"
           >

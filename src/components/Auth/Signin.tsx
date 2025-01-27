@@ -192,8 +192,6 @@ const Signin = () => {
                     xmlns="http://www.w3.org/2000/svg" 
                     fill="none" 
                     viewBox="0 0 24 24"
-                    title="Cargando"
-                    aria-label="Cargando..."
                   >
                     <circle 
                       className="opacity-25" 

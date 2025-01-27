@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import type { ParticipantMetadata, RoomMetadata } from "@/lib/controller";
 import {
   AudioTrack,
@@ -28,8 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Wifi, WifiOff, Mic, MicOff, Video, VideoOff, Users } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Wifi, WifiOff, Mic, MicOff, Video, VideoOff, Users, Maximize2, Minimize2, LayoutGrid, Rows } from 'lucide-react';
 import { createLocalTracks, LocalVideoTrack } from "livekit-client";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -63,13 +62,9 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
   const roomMetadata = metadata ? JSON.parse(metadata) as RoomMetadata : null;
   const { localParticipant } = useLocalParticipant();
   const participants = useParticipants();
-  const [participantStates, setParticipantStates] = useState<Map<string, {
-    isSpeaking: boolean;
-    connectionQuality: ConnectionQuality;
-    audioLevel: number;
-    hasAudioTrack: boolean;
-    hasVideoTrack: boolean;
-  }>>(new Map());
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const [participantStates, setParticipantStates] = useState<Map<string, ParticipantState>>(new Map());
   const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | null>(null);
   const localVideoEl = useRef<HTMLVideoElement>(null);
   const router = useRouter();
@@ -207,7 +202,7 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
 
   useEffect(() => {
     const updateParticipantState = () => {
-      const newStates = new Map();
+      const newStates = new Map<string, ParticipantState>();
       for (const participant of participants) {
         const hasAudioTrack = Object.values(participant.audioTrackPublications).length > 0;
         const hasVideoTrack = Object.values(participant.videoTrackPublications).length > 0;

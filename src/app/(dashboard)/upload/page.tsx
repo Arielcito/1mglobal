@@ -284,8 +284,8 @@ export default function UploadClassPage() {
               <Tabs 
                 defaultValue="upload" 
                 value={formData.videoType}
-                onValueChange={(value: 'upload' | 'youtube') => 
-                  setFormData(prev => ({ ...prev, videoType: value }))
+                onValueChange={(value: string) => 
+                  setFormData(prev => ({ ...prev, videoType: value as 'upload' | 'youtube' }))
                 }
                 className="w-full"
               >

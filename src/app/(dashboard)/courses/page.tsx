@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateCourseModal } from '@/components/CreateCourseModal'
+import { CreateCourseInput } from '@/types/course'
 
 interface Course {
   course_id: number
@@ -87,7 +88,7 @@ export default function CoursesPage() {
     }
   }
 
-  const handleCreateCourse = async (courseData: Omit<Course, 'course_id'>) => {
+  const handleCreateCourse = async (courseData: CreateCourseInput) => {
     try {
       await api.post('/api/courses', courseData)
       toast({
