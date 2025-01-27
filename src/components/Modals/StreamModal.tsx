@@ -9,16 +9,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Video, Copy, CheckCircle, ImageIcon } from "lucide-react";
+import { Video, Copy, CheckCircle, ImageIcon, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 import api from '@/app/libs/axios'
 import { useUploadThing } from "@/lib/uploadthing";
 import Image from "next/image";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
+import { CreateStreamResponse } from "@/types/api";
 
 interface StreamFormData {
   title: string;
   description: string;
   thumbnailUrl: string;
+  streamMethod: 'browser' | 'external';
+  role: 'host' | 'viewer';
 }
 
 interface StreamResponse {
@@ -64,6 +70,8 @@ const StreamModal = ({ session }: StreamModalProps) => {
     title: "",
     description: "",
     thumbnailUrl: "",
+    streamMethod: 'external',
+    role: 'host'
   });
   const [loading, setLoading] = React.useState(false);
   const [ingressResponse, setIngressResponse] = React.useState<IngressResponse | null>(null);
@@ -73,6 +81,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
   });
 
   const { startUpload, isUploading } = useUploadThing("thumbnailUploader");
+  const router = useRouter();
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -120,33 +129,47 @@ const StreamModal = ({ session }: StreamModalProps) => {
     setLoading(true);
 
     try {
-      const { data } = await api.post<StreamResponse>('/api/stream/create', {
-        room_name: formData.title,
-        metadata: {
-          creator_identity: session.id,
-          title: formData.title,
-          description: formData.description,
-          enable_chat: true,
-          allow_participation: true,
-        }
-      });
+      if (formData.role === 'viewer') {
+        router.push(`/stream/${formData.title}?isHost=false`);
+        return;
+      }
 
-      setIngressResponse({
-        streamKey: data.ingress.streamKey,
-        serverUrl: data.ingress.url,
-      });
+      if (formData.streamMethod === 'browser') {
+        const { data } = await api.post<CreateStreamResponse>('/api/stream/browser-stream', {
+          room_name: formData.title,
+          metadata: {
+            title: formData.title,
+            description: formData.description,
+            thumbnailUrl: formData.thumbnailUrl,
+            creator_identity: session.id,
+            creator_name: session.name,
+            isHost: true,
+          }
+        });
 
-      await api.post('/api/stream/live', {
-        name: data.stream.name,
-        title: data.stream.title,
-        description: data.stream.description,
-        thumbnailUrl: formData.thumbnailUrl,
-        userId: session.id,
-      });
+        console.log('Stream created:', data);
 
-      toast.success('Stream creado exitosamente');
+        router.push(`/stream/${data.stream.id}?token=${data.token}&isHost=true`);
+      } else {
+        const { data } = await api.post<StreamResponse>('/api/stream/create', {
+          room_name: formData.title,
+          metadata: {
+            creator_identity: session.id,
+            title: formData.title,
+            description: formData.description,
+            enable_chat: true,
+            allow_participation: true,
+            streamMethod: formData.streamMethod,
+          }
+        });
+
+        setIngressResponse({
+          streamKey: data.ingress.streamKey,
+          serverUrl: data.ingress.url,
+        });
+      }
     } catch (error) {
-      console.error('Error al crear el stream:', error);
+      console.error('Error creating stream:', error);
       toast.error("No se pudo crear el stream. Intente nuevamente.");
     } finally {
       setLoading(false);
@@ -174,13 +197,45 @@ const StreamModal = ({ session }: StreamModalProps) => {
         {!ingressResponse ? (
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Rol en el Stream
+              </label>
+              <RadioGroup
+                value={formData.role}
+                onValueChange={(value: 'host' | 'viewer') => 
+                  setFormData(prev => ({ ...prev, role: value }))
+                }
+                className="flex flex-col space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="host" id="host" />
+                  <Label htmlFor="host">
+                    Crear Stream
+                    <span className="block text-xs text-muted-foreground">
+                      Transmite contenido como anfitrión
+                    </span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="viewer" id="viewer" />
+                  <Label htmlFor="viewer">
+                    Ver Stream
+                    <span className="block text-xs text-muted-foreground">
+                      Únete como espectador
+                    </span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="title" className="text-sm font-medium">
-                Título
+                {formData.role === 'host' ? 'Título' : 'ID del Stream'}
               </label>
               <Input
                 id="title"
                 name="title"
-                placeholder="Ingresa el título del stream"
+                placeholder={formData.role === 'host' ? "Ingresa el título del stream" : "Ingresa el ID del stream"}
                 value={formData.title}
                 onChange={handleInputChange}
                 className="w-full"
@@ -188,56 +243,92 @@ const StreamModal = ({ session }: StreamModalProps) => {
               />
             </div>
             
-            <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium">
-                Descripción
-              </label>
-              <Textarea
-                id="description"
-                name="description"
-                placeholder="Describe el contenido del stream"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="w-full min-h-[100px]"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Miniatura del Stream
-              </label>
-              <div className="flex flex-col gap-4">
-                {formData.thumbnailUrl && (
-                  <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                    <Image
-                      src={formData.thumbnailUrl}
-                      alt="Miniatura del stream"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="flex items-center justify-center w-full">
-                  <label htmlFor="thumbnail" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <ImageIcon className="w-8 h-8 mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        {isUploading ? "Subiendo..." : "Haz clic para subir una miniatura"}
-                      </p>
-                    </div>
-                    <input
-                      id="thumbnail"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleThumbnailUpload}
-                      disabled={isUploading}
-                    />
+            {formData.role === 'host' && (
+              <>
+                <div className="space-y-2">
+                  <label htmlFor="description" className="text-sm font-medium">
+                    Descripción
                   </label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    placeholder="Describe el contenido del stream"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    className="w-full min-h-[100px]"
+                    required
+                  />
                 </div>
-              </div>
-            </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Miniatura del Stream
+                  </label>
+                  <div className="flex flex-col gap-4">
+                    {formData.thumbnailUrl && (
+                      <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                        <Image
+                          src={formData.thumbnailUrl}
+                          alt="Miniatura del stream"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center justify-center w-full">
+                      <label htmlFor="thumbnail" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <ImageIcon className="w-8 h-8 mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            {isUploading ? "Subiendo..." : "Haz clic para subir una miniatura"}
+                          </p>
+                        </div>
+                        <input
+                          id="thumbnail"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleThumbnailUpload}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Método de Streaming
+                  </label>
+                  <RadioGroup
+                    value={formData.streamMethod}
+                    onValueChange={(value: 'browser' | 'external') => 
+                      setFormData(prev => ({ ...prev, streamMethod: value }))
+                    }
+                    className="flex flex-col space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="browser" id="browser" />
+                      <Label htmlFor="browser">
+                        Transmitir desde el navegador
+                        <span className="block text-xs text-muted-foreground">
+                          Usa tu cámara web y micrófono directamente
+                        </span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="external" id="external" />
+                      <Label htmlFor="external">
+                        Usar software externo (OBS/Streamlabs)
+                        <span className="block text-xs text-muted-foreground">
+                          Más opciones de personalización
+                        </span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </>
+            )}
 
             <div className="flex justify-end space-x-2">
               <DialogTrigger asChild>
@@ -246,7 +337,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
                 </Button>
               </DialogTrigger>
               <Button type="submit" disabled={loading} className="bg-primary">
-                {loading ? "Creando..." : "Iniciar Stream"}
+                {loading ? "Cargando..." : formData.role === 'host' ? "Iniciar Stream" : "Unirse al Stream"}
               </Button>
             </div>
           </form>
@@ -259,14 +350,14 @@ const StreamModal = ({ session }: StreamModalProps) => {
               <div className="flex items-center space-x-2">
                 <Input
                   id="serverUrl"
-                  value={ingressResponse.serverUrl}
+                  value={ingressResponse?.serverUrl ?? ''}
                   readOnly
                   className="w-full font-mono text-sm"
                 />
                 <Button
                   size="icon"
                   variant="outline"
-                  onClick={() => handleCopy(ingressResponse.serverUrl, 'serverUrl')}
+                  onClick={() => ingressResponse && handleCopy(ingressResponse.serverUrl, 'serverUrl')}
                   aria-label="Copiar URL del servidor"
                 >
                   {copied.serverUrl ? (
@@ -285,15 +376,14 @@ const StreamModal = ({ session }: StreamModalProps) => {
               <div className="flex items-center space-x-2">
                 <Input
                   id="streamKey"
-                  value={ingressResponse.streamKey}
-                  type="password"
+                  value={ingressResponse?.streamKey ?? ''}
                   readOnly
                   className="w-full font-mono text-sm"
                 />
                 <Button
                   size="icon"
                   variant="outline"
-                  onClick={() => handleCopy(ingressResponse.streamKey, 'streamKey')}
+                  onClick={() => ingressResponse && handleCopy(ingressResponse.streamKey, 'streamKey')}
                   aria-label="Copiar clave de stream"
                 >
                   {copied.streamKey ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { ParticipantMetadata, RoomMetadata } from "@/lib/controller";
 import {
   AudioTrack,
@@ -17,11 +17,19 @@ import {
   type Participant,
   RoomEvent,
   ConnectionQuality,
+  TrackPublication,
 } from 'livekit-client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Wifi, WifiOff, Mic, MicOff, Video, VideoOff, Users } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { createLocalTracks, LocalVideoTrack } from "livekit-client";
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { MediaDeviceSettings } from "./MediaDeviceSettings";
+import api from '@/app/libs/axios';
+import { StopStreamResponse } from "@/types/api";
 
 interface VideoComponentProps {
   isHost?: boolean;
@@ -39,7 +47,36 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
     hasAudioTrack: boolean;
     hasVideoTrack: boolean;
   }>>(new Map());
+  const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | null>(null);
+  const localVideoEl = useRef<HTMLVideoElement>(null);
+  const router = useRouter();
 
+  // Agregar logs iniciales
+  useEffect(() => {
+    console.log('=== ESTADO INICIAL DEL COMPONENTE ===');
+    console.log('Room State:', roomState);
+    console.log('Room Metadata:', roomMetadata);
+    console.log('Local Participant:', {
+      identity: localParticipant.identity,
+      metadata: localParticipant.metadata,
+      publications: [...localParticipant.trackPublications.values()].map(pub => ({
+        trackSid: pub.trackSid,
+        kind: pub.kind,
+        source: pub.source
+      }))
+    });
+    console.log('Todos los participantes:', participants.map(p => ({
+      identity: p.identity,
+      metadata: p.metadata ? JSON.parse(p.metadata) : null,
+      publications: [...p.trackPublications.values()].map(pub => ({
+        trackSid: pub.trackSid,
+        kind: pub.kind,
+        source: pub.source
+      }))
+    })));
+  }, [roomState, roomMetadata, localParticipant, participants]);
+
+  // Logs para tracks
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -57,22 +94,78 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
     }
   );
 
+  useEffect(() => {
+    console.log('=== TRACKS ACTUALIZADOS ===');
+    console.log('Tracks disponibles:', tracks.map(track => ({
+      trackId: track.publication?.trackSid,
+      source: track.source,
+      participant: track.participant.identity,
+      isSubscribed: track.publication?.isSubscribed,
+      isMuted: track.publication?.isMuted
+    })));
+  }, [tracks]);
+
   // Encontrar el streamer (host)
   const hostParticipant = participants.find(p => {
+    if (!p.metadata || p.metadata === "") {
+      // Si el participante es el host local, lo identificamos
+      if (isHost && p.identity === localParticipant.identity) {
+        console.log('Host identificado como participante local:', p.identity);
+        return true;
+      }
+      console.log('Participante sin metadata:', p.identity);
+      return false;
+    }
     try {
-      const metadata = p.metadata ? JSON.parse(p.metadata) : null;
-      return metadata?.isHost;
-    } catch {
+      const metadata = JSON.parse(p.metadata);
+      console.log('Metadata del participante:', p.identity, metadata);
+      return metadata.isHost === true || (isHost && p.identity === localParticipant.identity);
+    } catch (error) {
+      console.error('Error al parsear metadata del participante:', p.identity, error);
       return false;
     }
   });
 
-  // Obtener los tracks del host
-  const hostVideoTrack = tracks.find(
-    track => 
-      track.participant.identity === hostParticipant?.identity && 
-      (track.source === Track.Source.Camera || track.source === Track.Source.ScreenShare)
-  );
+  useEffect(() => {
+    console.log('=== HOST PARTICIPANT UPDATE ===');
+    if (hostParticipant) {
+      console.log('Host encontrado:', {
+        identity: hostParticipant.identity,
+        metadata: hostParticipant.metadata ? JSON.parse(hostParticipant.metadata) : null,
+        publications: [...hostParticipant.trackPublications.values()].map(pub => ({
+          trackSid: pub.trackSid,
+          kind: pub.kind,
+          source: pub.source
+        }))
+      });
+    } else {
+      console.log('No se encontró host');
+    }
+  }, [hostParticipant]);
+
+  // Obtener los tracks del host con logs
+  const hostVideoTrack = tracks.find(track => {
+    const isHostTrack = track.participant.identity === hostParticipant?.identity;
+    const isVideoSource = track.source === Track.Source.Camera || track.source === Track.Source.ScreenShare;
+    console.log('Evaluando track para host:', {
+      trackId: track.publication?.trackSid,
+      participantIdentity: track.participant.identity,
+      isHostTrack,
+      isVideoSource,
+      source: track.source
+    });
+    return isHostTrack && isVideoSource;
+  });
+
+  useEffect(() => {
+    console.log('=== HOST VIDEO TRACK UPDATE ===');
+    console.log('Host video track:', hostVideoTrack ? {
+      trackId: hostVideoTrack.publication?.trackSid,
+      source: hostVideoTrack.source,
+      isSubscribed: hostVideoTrack.publication?.isSubscribed,
+      isMuted: hostVideoTrack.publication?.isMuted
+    } : 'No se encontró video track del host');
+  }, [hostVideoTrack]);
 
   const hostAudioTrack = tracks.find(
     track => 
@@ -145,6 +238,100 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
         return <WifiOff className="h-4 w-4 text-gray-500" />;
     }
   };
+
+  // Inicialización mejorada de tracks locales
+  useEffect(() => {
+    if (isHost) {
+      const initializeLocalTracks = async () => {
+        try {
+          console.log('Iniciando creación de tracks locales...');
+          const tracks = await createLocalTracks({ 
+            audio: true, 
+            video: true
+          });
+          
+          console.log('Tracks creados:', tracks);
+          
+          const videoTrack = tracks.find(t => t.kind === Track.Kind.Video) as LocalVideoTrack;
+          
+          if (videoTrack && localVideoEl.current) {
+            try {
+              await videoTrack.attach(localVideoEl.current);
+              console.log('Video track adjuntado exitosamente');
+              setLocalVideoTrack(videoTrack);
+            } catch (attachError) {
+              console.error('Error al adjuntar video track:', attachError);
+              toast.error('Error al inicializar la cámara');
+            }
+          } else {
+            console.warn('No se encontró video track o elemento de video');
+          }
+        } catch (error) {
+          console.error('Error al inicializar tracks:', error);
+          toast.error('Error al acceder a la cámara y micrófono');
+        }
+      };
+
+      void initializeLocalTracks();
+
+      // Cleanup function
+      return () => {
+        if (localVideoTrack) {
+          localVideoTrack.detach();
+          localVideoTrack.stop();
+        }
+      };
+    }
+  }, [isHost]);
+
+  // Manejo mejorado del estado de la conexión
+  useEffect(() => {
+    if (roomState === ConnectionState.Connected && localParticipant) {
+      console.log('Sala conectada, configurando participante local...');
+      
+      if (isHost) {
+        const metadata = {
+          isHost: true,
+          name: roomMetadata?.creator_name,
+          avatarUrl: roomMetadata?.creator_identity,
+        };
+        
+        localParticipant.setMetadata(JSON.stringify(metadata))
+          .then(() => console.log('Metadata del host establecida correctamente'))
+          .catch(error => {
+            console.error('Error al establecer metadata del participante:', error);
+            toast.error('Error al configurar la transmisión');
+          });
+      }
+    }
+  }, [roomState, localParticipant, isHost, roomMetadata]);
+
+  const handleStopStream = async () => {
+    try {
+      const { data } = await api.post<StopStreamResponse>('/api/stream/stop', {
+        streamId: roomMetadata?.streamId,
+      });
+
+      if (data.success) {
+        toast.success('Stream finalizado exitosamente');
+        router.push('/dashboard');
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error al detener stream:', error);
+      toast.error('Error al detener la transmisión');
+    }
+  };
+
+  useEffect(() => {
+    console.log('Room metadata:', roomMetadata);
+    console.log('All participants:', participants.map(p => ({
+      identity: p.identity,
+      metadata: p.metadata,
+      isHost: p.metadata ? JSON.parse(p.metadata)?.isHost : false
+    })));
+  }, [roomMetadata, participants]);
 
   if (!hostParticipant || !hostVideoTrack) {
     return (
@@ -224,6 +411,32 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       )}
 
       <StartAudio label="Haz clic para activar el audio" />
+
+      {/* Controles de transmisión para el host */}
+      {isHost && (
+        <div className="absolute top-4 right-4 z-50 flex items-center gap-4 bg-black/60 p-4 rounded-lg">
+          <MediaDeviceSettings />
+          <Button 
+            variant="destructive"
+            onClick={handleStopStream}
+          >
+            Terminar Stream
+          </Button>
+        </div>
+      )}
+
+      {/* Vista previa local para el host */}
+      {isHost && (
+        <div className="absolute bottom-4 right-4 w-[300px] aspect-video bg-black/60 rounded-lg overflow-hidden">
+          <video
+            ref={localVideoEl}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
     </div>
   );
 }

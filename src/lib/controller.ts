@@ -17,11 +17,15 @@ import {
   TrackSource,
 } from "livekit-server-sdk";
 
-export type RoomMetadata = {
+export interface RoomMetadata {
   creator_identity: string;
-  enable_chat: boolean;
-  allow_participation: boolean;
-};
+  creator_name: string;
+  title: string;
+  description?: string;
+  isHost?: boolean;
+  streamId: string;
+  room_name: string;
+}
 
 export interface ParticipantMetadata {
   name?: string;

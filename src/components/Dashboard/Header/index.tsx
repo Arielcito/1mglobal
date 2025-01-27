@@ -33,7 +33,7 @@ export const DashboardHeader = () => {
         <span className="hidden md:inline text-lg font-medium text-white">Hola, {user.email}!</span>
       </div>
       <div className="flex items-center space-x-2 md:space-x-4">
-        <div className="hidden md:block">
+        <div className=" md:block">
           <StreamModal session={{
             id: user.id,
             name: user.name || null
