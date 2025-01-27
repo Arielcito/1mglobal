@@ -61,7 +61,6 @@ interface StreamModalProps {
 }
 
 const StreamModal = ({ session }: StreamModalProps) => {
-  console.log("session", session)
   if (!session.isAdmin) return null;
 
   const [formData, setFormData] = React.useState<StreamFormData>({

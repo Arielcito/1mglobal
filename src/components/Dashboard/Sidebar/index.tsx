@@ -81,11 +81,6 @@ export const DashboardSidebar = () => {
   if (isLoading || !user) return null
 
   const isAdmin = user.isAdmin || false
-  console.log('Estado de administrador:', {
-    isAdmin,
-    userId: user.id,
-    timestamp: new Date().toISOString()
-  })
 
   return (
     <>

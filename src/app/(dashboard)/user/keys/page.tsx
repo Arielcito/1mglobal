@@ -1,18 +1,14 @@
 'use client'
 
+import { useQuery } from "react-query";
+import { useAuth } from "@/context/AuthContext";
+import api from '@/app/libs/axios';
 import Urlcard from "@/components/Card/Urlcard";
 import Streamcard from "@/components/Card/Streamcard";
 import { STREAM_KEYS } from "@/lib/constants";
-import { useQuery } from "react-query";
-import { useAuth } from "@/context/AuthContext";
 
 const fetchStreamData = async (userId: string) => {
-  const response = await fetch(`/api/stream/${userId}`)
-  if (!response.ok) {
-    throw new Error('Network response was not ok')
-  }
-  const data = await response.json()
-  console.log(data)
+  const { data } = await api.get(`/api/stream/${userId}`)
   return {
     serverUrl: data.serverUrl,
     streamKey: data.streamKey

@@ -3,25 +3,14 @@ import { db } from "@/lib/db";
 import { validateEnvVars } from "@/lib/env-check";
 
 export async function POST(req: Request) {
-  console.log('Starting POST request to create_ingress');
   
   try {
-    // Validate environment variables before proceeding
-    const env = validateEnvVars();
-    console.log('Environment variables validated:', {
-      hasApiKey: !!env.LIVEKIT_API_KEY,
-      hasApiSecret: !!env.LIVEKIT_API_SECRET,
-      hasWsUrl: !!env.LIVEKIT_WS_URL,
-    });
-
     const controller = new Controller();
     const reqBody = await req.json();
-    console.log('Request body:', JSON.stringify(reqBody, null, 2));
     
     const response = await controller.createIngress(
       reqBody as CreateIngressParams
     );
-    console.log('Response:', response);
     const stream = await db.stream.findUnique({
       where: {
         userId: reqBody.user_id

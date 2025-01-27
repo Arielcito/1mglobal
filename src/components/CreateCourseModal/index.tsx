@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import api from '@/app/libs/axios'
+import type { AxiosError } from 'axios'
 import {
   Dialog,
   DialogContent,
@@ -70,9 +72,7 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/categories')
-        if (!response.ok) throw new Error('Error al cargar categorías')
-        const data = await response.json()
+        const { data } = await api.get('/api/categories')
         setCategories(data)
       } catch (error) {
         toast({
@@ -90,17 +90,12 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
     if (!newCategory.trim()) return
 
     try {
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCategory.trim() })
+      const { data } = await api.post('/api/categories', { 
+        name: newCategory.trim() 
       })
 
-      if (!response.ok) throw new Error('Error al crear categoría')
-
-      const newCategoryData = await response.json()
-      setCategories(prev => [...prev, newCategoryData])
-      setFormData(prev => ({ ...prev, category_id: newCategoryData.id }))
+      setCategories(prev => [...prev, data])
+      setFormData(prev => ({ ...prev, category_id: data.id }))
       setNewCategory('')
       setShowNewCategoryInput(false)
       
@@ -109,10 +104,17 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
         description: "Categoría creada exitosamente"
       })
     } catch (error) {
+      const axiosError = error as AxiosError;
+      let errorMessage = "No se pudo crear la categoría";
+
+      if (axiosError.response?.status === 403) {
+        errorMessage = "No tienes permisos para crear categorías. Contacta al administrador.";
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo crear la categoría"
+        description: errorMessage
       })
     }
   }
@@ -165,35 +167,23 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
     }
 
     try {
-      const response = await fetch('/api/courses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          price: Number(formData.price)
-        }),
+      const { data } = await api.post('/api/courses', {
+        ...formData,
+        price: Number(formData.price)
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.details?.[0]?.message || error.error || 'Error al crear el curso')
-      }
-
-      const newCourse = await response.json()
-      onCreateCourse(newCourse)
+      onCreateCourse(data)
       toast({
         title: "Éxito",
         description: "Curso creado exitosamente"
       })
       handleCleanForm()
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : 'Error al crear el curso'
+        description: error.response?.data?.details?.[0]?.message || error.response?.data?.error || 'Error al crear el curso'
       })
       setIsLoading(false)
     }

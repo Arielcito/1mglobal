@@ -8,7 +8,6 @@ export default function DashboardPage() {
   const { user, isLoading } = useAuth()
 
   if (isLoading) {
-    console.log('⌛ Mostrando estado de carga');
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
@@ -17,7 +16,6 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    console.log('❌ No hay usuario, retornando null');
     return null
   }
   return (

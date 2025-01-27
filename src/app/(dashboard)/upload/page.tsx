@@ -3,11 +3,12 @@
 import { useAuth } from "@/context/AuthContext"
 import { redirect } from "next/navigation"
 import { useState } from "react"
+import api from '@/app/libs/axios'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Upload, Video, PlusCircle } from "lucide-react"
+import { Upload, Video, PlusCircle, Link as LinkIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
   Card,
@@ -23,12 +24,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 import { useQuery, useQueryClient } from 'react-query'
 import type { Course } from '@prisma/client'
 import type { ClassStatus } from "@prisma/client"
 import { CreateCourseModal } from '@/components/CreateCourseModal'
 import { useUploadThing } from "@/lib/uploadthing";
 import { Toaster } from "@/components/ui/toaster"
+import type { AxiosError } from 'axios'
 
 interface UploadClassForm {
   title: string
@@ -40,6 +48,8 @@ interface UploadClassForm {
   status: ClassStatus
   scheduledAt?: Date
   isLive: boolean
+  videoUrl?: string
+  videoType: 'upload' | 'youtube'
 }
 
 interface CreateCourseData {
@@ -71,7 +81,9 @@ export default function UploadClassPage() {
     order: 1,
     courseId: 0,
     status: 'DRAFT',
-    isLive: false
+    isLive: false,
+    videoUrl: '',
+    videoType: 'upload'
   })
   const [isCreateCourseModalOpen, setIsCreateCourseModalOpen] = useState(false)
   
@@ -96,11 +108,8 @@ export default function UploadClassPage() {
   const { data: courses, isLoading: isLoadingCourses } = useQuery<Course[]>({
     queryKey: ['courses'],
     queryFn: async () => {
-      const response = await fetch('/api/courses')
-      if (!response.ok) {
-        throw new Error('Error al cargar los cursos')
-      }
-      return response.json()
+      const { data } = await api.get('/api/courses')
+      return data
     }
   })
 
@@ -109,46 +118,49 @@ export default function UploadClassPage() {
     setIsUploading(true);
 
     try {
-      if (!videoFile) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se ha seleccionado ningún video"
-        });
-        return;
-      }
+      let videoUrl = formData.videoUrl;
 
-      // Subir el video usando UploadThing
-      const uploadResult = await startUpload([videoFile]);
-      
-      if (!uploadResult || !uploadResult[0]) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Error al subir el video"
-        });
-        return;
-      }
+      if (formData.videoType === 'upload') {
+        if (!videoFile) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se ha seleccionado ningún video"
+          });
+          return;
+        }
 
-      const videoUrl = uploadResult[0].url;
+        // Subir el video usando UploadThing
+        const uploadResult = await startUpload([videoFile]);
+        
+        if (!uploadResult?.[0]) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Error al subir el video"
+          });
+          return;
+        }
+
+        videoUrl = uploadResult[0].url;
+      } else {
+        // Validar URL de YouTube
+        if (!formData.videoUrl) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Debes proporcionar una URL de video válida"
+          });
+          return;
+        }
+      }
 
       // Crear la clase con la URL del video
-      const response = await fetch("/api/classes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          duration: formData.duration ? Number.parseInt(formData.duration.toString()) : null,
-          videoUrl,
-        }),
+      const { data } = await api.post("/api/classes", {
+        ...formData,
+        duration: formData.duration ? Number.parseInt(formData.duration.toString(), 10) : null,
+        videoUrl,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Error al crear la clase");
-      }
 
       toast({
         title: "¡Éxito!",
@@ -165,15 +177,18 @@ export default function UploadClassPage() {
         order: 1,
         courseId: 0,
         status: 'DRAFT',
-        isLive: false
+        isLive: false,
+        videoUrl: '',
+        videoType: 'upload'
       });
 
     } catch (error) {
       console.error("Error al subir la clase:", error);
+      const axiosError = error as AxiosError<{ message: string }>;
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Error al crear la clase"
+        description: axiosError.response?.data?.message || "Error al crear la clase"
       });
     } finally {
       setIsUploading(false);
@@ -192,20 +207,7 @@ export default function UploadClassPage() {
 
   const handleCreateCourse = async (courseData: CreateCourseData) => {
     try {
-      const response = await fetch('/api/courses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(courseData),
-      })
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al crear el curso');
-      }
-
-      const newCourse = await response.json()
+      const { data } = await api.post('/api/courses', courseData);
       
       await queryClient.invalidateQueries({ queryKey: ['courses'] })
       
@@ -215,13 +217,14 @@ export default function UploadClassPage() {
       });
 
       setIsCreateCourseModalOpen(false)
-      setFormData(prev => ({ ...prev, courseId: newCourse.id }))
+      setFormData(prev => ({ ...prev, courseId: data.id }))
     } catch (error) {
       console.error('Error al crear el curso:', error)
+      const axiosError = error as AxiosError<{ message: string }>;
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Error al crear el curso"
+        description: axiosError.response?.data?.message || "Error al crear el curso"
       });
     }
   }
@@ -275,43 +278,80 @@ export default function UploadClassPage() {
               </Select>
             </div>
 
-            {/* Video Upload */}
+            {/* Video Upload/URL Tabs */}
             <div className="space-y-2">
               <Label>Video de la Clase</Label>
-              <div className="border-2 border-dashed rounded-lg p-8 text-center space-y-4">
-                {videoFile ? (
-                  <div className="space-y-2">
-                    <Video className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <p className="text-sm">{videoFile.name}</p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setVideoFile(null)}
-                    >
-                      Cambiar video
-                    </Button>
+              <Tabs 
+                defaultValue="upload" 
+                value={formData.videoType}
+                onValueChange={(value: 'upload' | 'youtube') => 
+                  setFormData(prev => ({ ...prev, videoType: value }))
+                }
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upload" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Subir Video
+                  </TabsTrigger>
+                  <TabsTrigger value="youtube" className="flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4" />
+                    URL de Video
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload">
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center space-y-4">
+                    {videoFile ? (
+                      <div className="space-y-2">
+                        <Video className="h-12 w-12 mx-auto text-muted-foreground" />
+                        <p className="text-sm">{videoFile.name}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setVideoFile(null)}
+                        >
+                          Cambiar video
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer space-y-2 flex flex-col items-center">
+                        <Upload className="h-12 w-12 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Arrastra un video o haz clic para seleccionar
+                        </p>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) setVideoFile(file)
+                          }}
+                        />
+                        <Button type="button" variant="secondary">
+                          Seleccionar Video
+                        </Button>
+                      </label>
+                    )}
                   </div>
-                ) : (
-                  <label className="cursor-pointer space-y-2 flex flex-col items-center">
-                    <Upload className="h-12 w-12 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Arrastra un video o haz clic para seleccionar
-                    </p>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) setVideoFile(file)
-                      }}
+                </TabsContent>
+
+                <TabsContent value="youtube">
+                  <div className="space-y-4">
+                    <Input
+                      placeholder="Ingresa la URL del video (YouTube, Vimeo, etc.)"
+                      value={formData.videoUrl}
+                      onChange={(e) => 
+                        setFormData(prev => ({ ...prev, videoUrl: e.target.value }))
+                      }
                     />
-                    <Button type="button" variant="secondary">
-                      Seleccionar Video
-                    </Button>
-                  </label>
-                )}
-              </div>
+                    <p className="text-sm text-muted-foreground">
+                      Asegúrate de que la URL sea pública y accesible para tus estudiantes
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Título de la Clase */}
@@ -449,7 +489,12 @@ export default function UploadClassPage() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isUploading || isUploadingVideo || !videoFile || !formData.courseId}
+              disabled={
+                isUploading || 
+                isUploadingVideo || 
+                (formData.videoType === 'upload' ? !videoFile : !formData.videoUrl) || 
+                !formData.courseId
+              }
             >
               {isUploading || isUploadingVideo ? 'Subiendo...' : 'Subir Clase'}
             </Button>

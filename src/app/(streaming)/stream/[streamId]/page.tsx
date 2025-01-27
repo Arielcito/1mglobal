@@ -18,7 +18,7 @@ const StreamContent = () => {
     ['stream', streamId],
     async () => {
       const { data } = await api.get(`/api/stream/live/${streamId}`)
-      console.log('🔄 Stream data', data)
+
       return data
     },
     {
@@ -30,11 +30,11 @@ const StreamContent = () => {
   const { data: tokenData, isLoading: tokenLoading } = useQuery(
     ['stream-token', streamData?.name],
     async () => {
-      console.log('🎯 Solicitando token para sala:', streamData?.name)
+
       const { data } = await api.post('/api/stream/viewer-token', {
         room_name: streamData?.name
       })
-      console.log('🎯 Token recibido:', data)
+
       return {
         token: data.token,
         ws_url: data.ws_url
@@ -51,11 +51,6 @@ const StreamContent = () => {
   }
 
   if (tokenLoading || !tokenData) {
-    console.log('🔄 Esperando token...', {
-      tokenLoading,
-      tokenData,
-      roomName: streamData?.name
-    })
     return <StreamSkeleton />
   }
 
