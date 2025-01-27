@@ -12,6 +12,10 @@ interface User {
   name?: string;
   image?: string;
   isAdmin?: boolean;
+  emailVerified?: string | null;
+  username?: string;
+  fullName?: string | null;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -85,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (token && email) {
         const userData = await fetchUserState(token);
+        console.log("userData", userData)
         if (userData) {
           const newUser = { id: userData.id, token, email, ...userData };
           setUser(newUser);
@@ -106,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await api.post('/api/auth/login', { email, password });
+      console.log("response", response)
       const data = response.data;
       const userData = data.user;
       
@@ -130,11 +136,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userToSet = {
         id: userData.id,
-        email,
+        email: userData.email,
         token: data.token,
         name: userData.name,
-        is_admin: userData.is_admin,
-        image: userData.image || null
+        isAdmin: userData.isAdmin,
+        image: userData.image,
+        emailVerified: userData.emailVerified,
+        username: userData.username,
+        fullName: userData.fullName,
+        createdAt: userData.createdAt
       };
 
       setUser(userToSet);

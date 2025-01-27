@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/AuthContext'
 import { useQuery } from 'react-query'
+import api from '@/app/libs/axios'
 import {
   Sidebar,
   SidebarContent,
@@ -51,9 +52,8 @@ export const DashboardSidebar = () => {
   const { data: streamData } = useQuery<StreamData[]>(
     ['streams', 'live'],
     async () => {
-      const res = await fetch('/api/streams/live')
-      if (!res.ok) throw new Error('Network response was not ok')
-      return res.json()
+      const { data } = await api.get('/api/streams/live')
+      return data
     },
     {
       enabled: !!user?.id
@@ -81,6 +81,11 @@ export const DashboardSidebar = () => {
   if (isLoading || !user) return null
 
   const isAdmin = user.isAdmin || false
+  console.log('Estado de administrador:', {
+    isAdmin,
+    userId: user.id,
+    timestamp: new Date().toISOString()
+  })
 
   return (
     <>

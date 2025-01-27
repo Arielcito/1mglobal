@@ -36,7 +36,8 @@ export const DashboardHeader = () => {
         <div className="hidden md:block">
           <StreamModal session={{
             id: user.id,
-            name: user.name || null
+            name: user.name || null,
+            isAdmin: user.isAdmin || false
           }} />
         </div>
 
