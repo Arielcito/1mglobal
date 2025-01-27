@@ -2,8 +2,8 @@ import Signup from "@/components/Auth/Signup";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign Up Page - Appline SaaS Boilerplate",
-  description: "This is Sign Up page for Startup Pro",
+  title: "One Movement Global - Registro",
+  description: "Registro de usuario para One Movement Global",
   // other metadata
 };
 
