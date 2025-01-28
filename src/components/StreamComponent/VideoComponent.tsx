@@ -382,7 +382,6 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
         <div className="text-center p-4">
           <p className="text-white mb-4">Esperando al streamer...</p>
           <div className="flex items-center justify-center gap-2">
-            <Users className="h-5 w-5 text-white" />
             <span className="text-white">{participants.length} espectadores</span>
           </div>
         </div>
@@ -444,17 +443,8 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
 
           {/* Información del streamer */}
           <div className="absolute bottom-4 left-4 flex items-center gap-4">
-            <Avatar className="h-12 w-12 border-2 border-primary">
-              <AvatarImage src={hostMetadata?.avatarUrl} />
-              <AvatarFallback>{hostParticipant.identity[0] ?? "?"}</AvatarFallback>
-            </Avatar>
-            
             <div className="flex flex-col">
-              <span className="text-white font-semibold">
-                {hostMetadata?.name || hostParticipant.identity}
-              </span>
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-white" />
                 <span className="text-white text-sm">
                   {participants.length} espectadores
                 </span>

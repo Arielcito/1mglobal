@@ -20,27 +20,49 @@ interface ChatMessageProps {
   message: ReceivedChatMessage;
 }
 
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  username: string;
+  isAdmin: boolean;
+}
+
 function ChatMessage({ message }: ChatMessageProps) {
   const { localParticipant } = useLocalParticipant();
   const isLocalParticipant = localParticipant.identity === message.from?.identity;
-  const [userData, setUserData] = useState<{ name: string; image: string | null } | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         if (message.from?.identity) {
+          console.log('🎯 Fetching user data for:', {
+            identity: message.from.identity,
+            name: message.from.name,
+            metadata: message.from.metadata
+          });
+
           const { data } = await api.get(`/api/users/${message.from.identity}`);
+          console.log('📦 User data received:', data);
           setUserData(data);
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error('❌ Error fetching user data:', error);
       }
     };
 
     fetchUserData();
   }, [message.from?.identity]);
 
-  const displayName = userData?.name || message.from?.name || "Usuario Anónimo";
+  const displayName = userData?.username || message.from?.name || "Usuario Anónimo";
+  console.log('👤 Display name used:', {
+    userData: userData,
+    fromName: message.from?.name,
+    finalName: displayName,
+    username: userData?.username
+  });
 
   return (
     <div className={cn(

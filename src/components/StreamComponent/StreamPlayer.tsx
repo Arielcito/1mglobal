@@ -79,7 +79,6 @@ export const StreamPlayer = ({
   const [isConnecting, setIsConnecting] = useState(true)
   const [isConnected, setIsConnected] = useState(false)
   const [currentViewers, setCurrentViewers] = useState(viewerCount)
-  const [hasPermissions, setHasPermissions] = useState(false)
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null)
   const router = useRouter()
 
@@ -90,28 +89,6 @@ export const StreamPlayer = ({
       token: token ? 'presente' : 'ausente',
       wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL
     })
-
-    // Solo solicitar permisos si es host
-    if (isHost) {
-      const requestPermissions = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: true, 
-            audio: true 
-          })
-          setHasPermissions(true)
-          // Liberar los tracks después de obtener permisos
-          for (const track of stream.getTracks()) {
-            track.stop()
-          }
-        } catch (error) {
-          console.error('Error al solicitar permisos:', error)
-          setHasPermissions(false)
-          toast.error('No se pudo acceder a la cámara/micrófono. Por favor, verifica los permisos.')
-        }
-      }
-      requestPermissions()
-    }
 
     // Inicializar AudioContext después de una interacción del usuario
     const handleUserInteraction = () => {
@@ -178,35 +155,12 @@ export const StreamPlayer = ({
 
   const handleError = useCallback((error: Error) => {
     console.error('❌ Error en LiveKitRoom:', error)
-    if (error.name === 'NotAllowedError') {
-      toast.error('No se pudo acceder a la cámara/micrófono. Por favor, verifica los permisos.')
-      setHasPermissions(false)
-    } else {
-      toast.error(`Error al conectar con el servidor de streaming: ${error.message}`)
-    }
+    toast.error(`Error al conectar con el servidor de streaming: ${error.message}`)
   }, [])
 
   if (!token || !process.env.NEXT_PUBLIC_LIVEKIT_URL) {
     console.error('❌ Falta token o URL de LiveKit')
     return <StreamSkeleton />
-  }
-
-  // Si es host y no tiene permisos, mostrar mensaje
-  if (isHost && !hasPermissions) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-zinc-900">
-        <div className="text-center p-4">
-          <h2 className="text-xl font-bold text-white mb-4">Se requieren permisos</h2>
-          <p className="text-zinc-300 mb-4">Para iniciar el stream, necesitamos acceso a tu cámara y micrófono.</p>
-          <Button 
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    )
   }
 
   const roomOptions: RoomOptions & RoomConnectOptions = {
@@ -298,11 +252,6 @@ export const StreamPlayer = ({
                       <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
                       <div className="flex items-center gap-2 text-sm text-zinc-300">
                         <p>{hostName}</p>
-                        <span>•</span>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <p>{currentViewers} espectadores</p>
-                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">

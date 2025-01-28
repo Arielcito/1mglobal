@@ -12,45 +12,93 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
 
-const getYouTubeVideoId = (url: string) => {
-  if (!url) return null
-  
-  // Patrones comunes de URLs de YouTube
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
-    /^([^&\?\/]+)$/  // Para cuando solo se proporciona el ID
-  ]
+const getVideoProvider = (url: string) => {
+  if (!url) return null;
 
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match) return match[1]
+  // YouTube
+  if (url.match(/(?:youtube\.com|youtu\.be)/i)) {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
+      /^([^&\?\/]+)$/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return { provider: 'youtube', id: match[1] };
+    }
   }
 
-  return null
-}
+  // Vimeo
+  if (url.match(/vimeo\.com/i)) {
+    const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (match) return { provider: 'vimeo', id: match[1] };
+  }
+
+  // URL directa de video (mp4, etc.)
+  if (url.match(/\.(mp4|webm|ogg)$/i)) {
+    return { provider: 'direct', url };
+  }
+
+  return null;
+};
 
 const VideoPlayer = ({ url }: { url: string }) => {
-  const videoId = getYouTubeVideoId(url)
+  const videoInfo = getVideoProvider(url);
   
-  if (!videoId) {
+  if (!videoInfo) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
         <p className="text-primary font-medium">URL de video no válida</p>
       </div>
-    )
+    );
   }
 
-  return (
-    <iframe
-      title="Video de la clase"
-      src={`https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`}
-      className="absolute inset-0 w-full h-full"
-      loading="lazy"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowFullScreen
-    />
-  )
-}
+  switch (videoInfo.provider) {
+    case 'youtube':
+      return (
+        <iframe
+          title="Video de la clase"
+          src={`https://www.youtube.com/embed/${videoInfo.id}?autoplay=0&rel=0&modestbranding=1`}
+          className="absolute inset-0 w-full h-full"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+
+    case 'vimeo':
+      return (
+        <iframe
+          title="Video de la clase"
+          src={`https://player.vimeo.com/video/${videoInfo.id}?autoplay=0`}
+          className="absolute inset-0 w-full h-full"
+          loading="lazy"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      );
+
+    case 'direct':
+      return (
+        <video
+          className="absolute inset-0 w-full h-full"
+          controls
+          playsInline
+          preload="metadata"
+        >
+          <source src={videoInfo.url} />
+          Tu navegador no soporta la reproducción de videos.
+        </video>
+      );
+
+    default:
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
+          <p className="text-primary font-medium">Formato de video no soportado</p>
+        </div>
+      );
+  }
+};
 
 const ClassPage = () => {
   const params = useParams()
