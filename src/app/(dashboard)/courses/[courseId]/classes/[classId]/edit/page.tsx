@@ -66,12 +66,12 @@ export default function EditClassPage() {
         title: "Clase actualizada",
         description: "Los cambios han sido guardados exitosamente"
       })
-      router.push(`/courses/${courseId}/classes`)
+      router.back()
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "No se pudieron guardar los cambios"
+        title: "Error al actualizar",
+        description: "No se pudieron guardar los cambios. Por favor, intenta nuevamente."
       })
     } finally {
       setIsLoading(false)

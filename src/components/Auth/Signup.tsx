@@ -2,11 +2,11 @@
 import axios from "axios";
 import Link from "next/link";
 import { useState } from "react";
-import toast from "react-hot-toast";
 import validateEmail from "@/app/libs/validate";
 import { useRouter } from 'next/navigation';
 import { useEffect } from "react"
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { Eye, EyeOff } from 'lucide-react';
 import api from "@/services/api";
@@ -14,6 +14,7 @@ import api from "@/services/api";
 const Signup = () => {
   const { user, isLoading: authLoading, login } = useAuth()
   const router = useRouter()
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -34,6 +35,7 @@ const Signup = () => {
     password: "",
     confirmPassword: "",
   });
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const { username, email, password, confirmPassword } = data;
 
@@ -59,32 +61,47 @@ const Signup = () => {
     setIsLoading(true);
 
     if (!username || !email || !password || !confirmPassword) {
-      toast.error("Todos los campos son requeridos");
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Todos los campos son requeridos"
+      });
       setIsLoading(false);
       return;
     }
 
     if (!validateEmail(email)) {
-      toast.error("El formato del email no es válido");
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "El formato del email no es válido"
+      });
       setIsLoading(false);
       return;
     }
 
     const passwordErrors = validatePassword(password);
     if (passwordErrors.length > 0) {
-      toast.error(`La contraseña debe contener ${passwordErrors.join(", ")}`);
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: `La contraseña debe contener ${passwordErrors.join(", ")}`
+      });
       setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Las contraseñas no coinciden");
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Las contraseñas no coinciden"
+      });
       setIsLoading(false);
       return;
     }
 
     try {
-      // 1. Registrar usuario
       const response = await api.post("/api/users", {
         username,
         email,
@@ -92,13 +109,14 @@ const Signup = () => {
       });
 
       if (response.status === 201) {
-        toast.success("Usuario registrado exitosamente");
+        toast({
+          title: "¡Registro exitoso!",
+          description: "Usuario registrado correctamente"
+        });
         
         try {
-          // 2. Iniciar sesión usando el método login del contexto
           await login(email, password);
           
-          // 3. Limpiar formulario
           setData({
             username: "",
             email: "",
@@ -106,29 +124,74 @@ const Signup = () => {
             confirmPassword: "",
           });
 
-          // 4. Redireccionar al dashboard
-          toast.success("¡Bienvenido! Has iniciado sesión correctamente");
+          toast({
+            title: "¡Bienvenido!",
+            description: "Has iniciado sesión correctamente"
+          });
           router.push('/dashboard');
         } catch (loginError) {
           console.error("Error al iniciar sesión:", loginError);
-          toast.error("Registro exitoso pero hubo un error al iniciar sesión");
+          toast({
+            variant: "destructive",
+            title: "Error de inicio de sesión",
+            description: "Registro exitoso pero hubo un error al iniciar sesión"
+          });
           router.push('/auth/signin');
         }
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error;
+        
         switch (error.response?.status) {
           case 400:
-            toast.error("Los datos proporcionados no son válidos");
+            toast({
+              variant: "destructive",
+              title: "Error de validación",
+              description: errorMessage || "Los datos proporcionados no son válidos"
+            });
             break;
           case 409:
-            toast.error("El usuario ya existe");
+            toast({
+              variant: "destructive",
+              title: "Error de registro",
+              description: errorMessage || "El usuario ya existe"
+            });
+            break;
+          case 422:
+            toast({
+              variant: "destructive",
+              title: "Error de validación",
+              description: errorMessage || "Error de validación en los datos"
+            });
+            break;
+          case 500:
+            toast({
+              variant: "destructive",
+              title: "Error del servidor",
+              description: errorMessage || "Error interno del servidor"
+            });
             break;
           default:
-            toast.error("Ocurrió un error durante el registro");
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: errorMessage || "Ocurrió un error durante el registro"
+            });
         }
+
+        console.error("Error de registro:", {
+          status: error.response?.status,
+          message: errorMessage,
+          data: error.response?.data
+        });
       } else {
-        toast.error("Ocurrió un error inesperado");
+        console.error("Error inesperado:", error);
+        toast({
+          variant: "destructive",
+          title: "Error inesperado",
+          description: "Ocurrió un error inesperado durante el registro"
+        });
       }
     } finally {
       setIsLoading(false);
@@ -293,12 +356,16 @@ const Signup = () => {
                 <input
                   type="checkbox"
                   id="terms"
-                  className="sr-only"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="sr-only peer"
                   required
                 />
-                <span className="mr-[10px] flex h-5 w-5 items-center justify-center rounded border border-stroke-dark">
+                <span className="mr-[10px] flex h-5 w-5 items-center justify-center rounded border border-stroke-dark peer-checked:border-primary">
                   <svg
-                    className="hidden h-3 w-3 text-primary"
+                    className={`h-3 w-3 text-primary ${
+                      acceptTerms ? 'block' : 'hidden'
+                    }`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

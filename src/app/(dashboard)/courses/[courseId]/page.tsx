@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useQuery } from 'react-query'
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreVertical, Pencil, Eye, Trash2, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import Image from 'next/image'
 
 // Interfaces
 interface Instructor {
@@ -35,15 +36,20 @@ interface Instructor {
 }
 
 interface Class {
-  classId: string
+  classId: number
+  courseId: number
   title: string
   description: string
-  duration: string
-  status: string
-  recordingUrl?: string
+  scheduledAt: string | null
   isLive: boolean
-  scheduledAt?: Date
+  recordingUrl: string | null
+  content: string | null
+  duration: number
   order: number
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+  createdAt: string
+  updatedAt: string
+  publishedAt: string | null
 }
 
 interface Course {
@@ -53,6 +59,7 @@ interface Course {
   image_url: string
   price: number
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   category?: {
     name: string
   }
@@ -70,12 +77,30 @@ const fetchCourseWithClasses = async (courseId: string): Promise<Course> => {
     // Obtenemos las clases para este curso
     const classesResponse = await api.get(`/api/classes/course/${courseId}`)
     const classes = classesResponse.data
+
+    // Ordenamos las clases por orden
+    const sortedClasses = classes.sort((a: Class, b: Class) => a.order - b.order)
     
-    return { ...course, classes }
+    console.log('Curso:', course)
+    console.log('Clases:', sortedClasses)
+    
+    return { 
+      ...course, 
+      classes: sortedClasses 
+    }
   } catch (error) {
     console.error('Error al cargar el curso y sus clases:', error)
     throw new Error('Error al cargar el curso y sus clases')
   }
+}
+
+const getStatusBadge = (status: Class['status']) => {
+  const colors = {
+    DRAFT: 'bg-gray-100 text-gray-800',
+    PUBLISHED: 'bg-green-100 text-green-800',
+    ARCHIVED: 'bg-red-100 text-red-800'
+  }
+  return colors[status]
 }
 
 const CourseDetailPage = () => {
@@ -111,6 +136,26 @@ const CourseDetailPage = () => {
     }
   }
 
+  const handleClassClick = (classId: number) => {
+    if (!classId) {
+      console.error('No se proporcionó el ID de la clase')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo acceder a la clase"
+      })
+      return
+    }
+    
+    console.log("Navegando a la clase:", {
+      courseId,
+      classId,
+      url: `/courses/${courseId}/classes/${classId}`
+    })
+    
+    router.push(`/courses/${courseId}/classes/${classId}`)
+  }
+
   if (isLoading) {
     return <CourseDetailSkeleton />
   }
@@ -131,108 +176,94 @@ const CourseDetailPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">
-            {course.title} - Clases
-          </h1>
-          <Button 
-            onClick={() => router.push(`/courses/${courseId}/classes/new`)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Clase
-          </Button>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Lista de Clases</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Orden</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Duración</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Programada para</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {course.classes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No hay clases disponibles
+    <div className="container mx-auto py-10 space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="relative w-full md:w-1/3 aspect-video">
+              <Image
+                src={course.image_url}
+                alt={course.title}
+                fill
+                className="object-cover rounded-lg"
+              />
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl mb-2">{course.title}</CardTitle>
+                  <CardDescription className="text-lg">{course.description}</CardDescription>
+                </div>
+                <Badge className="ml-2">{course.level}</Badge>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Badge variant="outline">Precio: ${course.price}</Badge>
+                <Badge variant="secondary">{course.classes?.length || 0} clases</Badge>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Clases del Curso</CardTitle>
+          <CardDescription>Lista de todas las clases disponibles</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Orden</TableHead>
+                <TableHead>Título</TableHead>
+                <TableHead>Duración</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Fecha Programada</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {course.classes && course.classes.length > 0 ? (
+                course.classes.map((classItem) => (
+                  <TableRow 
+                    key={classItem.classId}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleClassClick(classItem.classId)}
+                  >
+                    <TableCell>{classItem.order}</TableCell>
+                    <TableCell className="font-medium">
+                      {classItem.title}
+                      {classItem.isLive && (
+                        <Badge variant="destructive" className="ml-2">EN VIVO</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>{classItem.duration} min</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadge(classItem.status)}>
+                        {classItem.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {classItem.scheduledAt ? 
+                        new Date(classItem.scheduledAt).toLocaleString('es-ES', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short'
+                        }) : 
+                        'No programada'
+                      }
                     </TableCell>
                   </TableRow>
-                ) : (
-                  course.classes
-                    .sort((a, b) => a.order - b.order)
-                    .map((clase) => (
-                      <TableRow key={clase.classId}>
-                        <TableCell>{clase.order}</TableCell>
-                        <TableCell className="font-medium">{clase.title}</TableCell>
-                        <TableCell>{clase.duration} min</TableCell>
-                        <TableCell>
-                          <Badge variant={
-                            clase.isLive ? "destructive" : 
-                            clase.status === 'PUBLISHED' ? "default" : 
-                            "secondary"
-                          }>
-                            {clase.isLive ? 'EN VIVO' : clase.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {clase.scheduledAt ? 
-                            new Date(clase.scheduledAt).toLocaleString() : 
-                            'No programada'
-                          }
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/courses/${courseId}/classes/${clase.classId}`)}
-                                className="cursor-pointer"
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver clase
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/courses/${courseId}/classes/${clase.classId}/edit`)}
-                                className="cursor-pointer"
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClass(clase.classId)}
-                                className="cursor-pointer text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4">
+                    No hay clases disponibles para este curso
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }
