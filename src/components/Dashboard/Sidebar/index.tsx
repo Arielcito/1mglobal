@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Video, BookOpen, Key, Upload, Menu, GraduationCap } from 'lucide-react'
+import { Video, BookOpen, Key, Upload, Menu, GraduationCap, Sparkles, BookOpenCheck, Users } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +33,10 @@ const menuPaths = {
   '/classes': 'classes',
   '/user/keys': 'keys',
   '/upload': 'upload',
-  '/courses': 'courses'
+  '/courses': 'courses',
+  '/news': 'news',
+  '/trading-info': 'trading-info',
+  '/about': 'about'
 } as const
 
 type MenuKeys = keyof typeof menuPaths
@@ -79,6 +82,15 @@ export const DashboardSidebar = () => {
       case 'courses':
         router.push('/courses')
         break
+      case 'news':
+        router.push('/news')
+        break
+      case 'trading-info':
+        router.push('/trading-info')
+        break
+      case 'about':
+        router.push('/about')
+        break
     }
   }
 
@@ -110,6 +122,39 @@ export const DashboardSidebar = () => {
 
         <SidebarContent>
           <SidebarMenu className="py-4">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => handleMenuClick('about')}
+                isActive={activeMenu === 'about'}
+                className="flex items-center w-full px-6 py-3 text-base md:text-lg"
+              >
+                <Users className="mr-3 h-5 w-5" />
+                Sobre Nosotros
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => handleMenuClick('news')}
+                isActive={activeMenu === 'news'}
+                className="flex items-center w-full px-6 py-3 text-base md:text-lg"
+              >
+                <Sparkles className="mr-3 h-5 w-5" />
+                Novedades
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => handleMenuClick('trading-info')}
+                isActive={activeMenu === 'trading-info'}
+                className="flex items-center w-full px-6 py-3 text-base md:text-lg"
+              >
+                <BookOpenCheck className="mr-3 h-5 w-5" />
+                ¿Qué es Trading?
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => handleMenuClick('live')}

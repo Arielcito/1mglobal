@@ -36,4 +36,24 @@ api.interceptors.response.use(
   }
 );
 
+export interface Alert {
+  id: string;
+  message: string;
+  sender: string;
+  groupId: string;
+  timestamp: string;
+}
+
+export const alertService = {
+  getAlerts: async (): Promise<Alert[]> => {
+    const response = await api.get('/api/alerts');
+    return response.data;
+  },
+
+  createAlert: async (alert: Omit<Alert, 'id'>): Promise<Alert> => {
+    const response = await api.post('/api/alerts', alert);
+    return response.data;
+  }
+};
+
 export default api; 
