@@ -16,12 +16,6 @@ const Signup = () => {
   const router = useRouter()
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard')
-    }
-  }, [user, router])
-
   if (authLoading) {
     return <div>Loading...</div>
   }
