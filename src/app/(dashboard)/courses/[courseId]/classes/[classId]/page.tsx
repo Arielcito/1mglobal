@@ -136,18 +136,18 @@ const ClassPage = () => {
   }
 
   return (
-    <div className="h-screen w-full relative lg:h-[calc(100vh-80px)] lg:static ">
+    <div className="h-full min-h-[calc(100vh-80px)] w-full relative overflow-y-auto">
       {/* Back Button */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-4 left-4 z-50"
+        className="fixed top-4 left-4 z-50"
         onClick={handleBackClick}
       >
         <ChevronLeft className="h-6 w-6" />
       </Button>
 
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col">
         {/* Video Section */}
         <div className="relative w-full aspect-video bg-slate-950">
           {currentClass.recordingUrl ? (
@@ -177,7 +177,7 @@ const ClassPage = () => {
         </div>
 
         {/* Class List */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="p-4">
           <h2 className="text-xl font-semibold mb-4">Siguientes clases</h2>
           <div className="space-y-2">
             {classes?.map((clase) => (
@@ -187,7 +187,7 @@ const ClassPage = () => {
               >
                 <Card
                   className={cn(
-                    "p-4 cursor-pointer hover:bg-gray-100 transition-colors mb-4",
+                    "p-4 cursor-pointer hover:bg-gray-100 transition-colors",
                     clase.classId === classId && "bg-gray-100"
                   )}
                 >
