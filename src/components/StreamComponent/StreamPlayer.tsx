@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -17,10 +17,9 @@ import {
 import type { 
   RoomOptions,
   RoomConnectOptions,
-  DisconnectReason,
   Participant
 } from 'livekit-client'
-import { VideoPresets, ConnectionQuality } from 'livekit-client'
+import { VideoPresets, ConnectionQuality, DisconnectReason } from 'livekit-client'
 import '@livekit/components-styles'
 import { ChatComponent } from "./ChatComponent"
 import VideoComponent from "./VideoComponent"
@@ -79,40 +78,26 @@ export const StreamPlayer = ({
   const [isConnecting, setIsConnecting] = useState(true)
   const [isConnected, setIsConnected] = useState(false)
   const [currentViewers, setCurrentViewers] = useState(viewerCount)
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null)
   const router = useRouter()
+  const connectionAttempts = useRef(0)
 
   useEffect(() => {
-    console.log('🎯 Iniciando StreamPlayer con:', {
+    console.log('🔄 Componente StreamPlayer montado', {
       streamId,
       isHost,
-      token: token ? 'presente' : 'ausente',
-      wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL
-    })
-
-    // Inicializar AudioContext después de una interacción del usuario
-    const handleUserInteraction = () => {
-      if (!audioContext) {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-        setAudioContext(ctx)
-        // Remover los event listeners después de la primera interacción
-        document.removeEventListener('click', handleUserInteraction)
-        document.removeEventListener('touchstart', handleUserInteraction)
-      }
-    }
-
-    document.addEventListener('click', handleUserInteraction)
-    document.addEventListener('touchstart', handleUserInteraction)
+      hasToken: !!token,
+      hasServerUrl: !!process.env.NEXT_PUBLIC_LIVEKIT_URL,
+      tokenLength: token?.length
+    });
 
     return () => {
-      document.removeEventListener('click', handleUserInteraction)
-      document.removeEventListener('touchstart', handleUserInteraction)
-      // Limpiar AudioContext al desmontar
-      if (audioContext) {
-        audioContext.close()
-      }
-    }
-  }, [streamId, isHost, token, audioContext])
+      console.log('🔄 Componente StreamPlayer desmontado', {
+        streamId,
+        isHost,
+        connectionAttempts: connectionAttempts.current
+      });
+    };
+  }, [streamId, isHost, token]);
 
   const handleBackClick = () => {
     router.back()
@@ -141,49 +126,82 @@ export const StreamPlayer = ({
   }, [title, hostName])
 
   const handleConnected = useCallback(() => {
-    console.log('🟢 Conectado al stream')
-    setIsConnecting(false)
-    setIsConnected(true)
-    toast.success('¡Conectado al stream!')
-  }, [])
+    connectionAttempts.current += 1;
+    console.log('✅ Conectado al stream:', {
+      streamId,
+      isHost,
+      currentTime: new Date().toISOString(),
+      attempt: connectionAttempts.current
+    });
+    setIsConnecting(false);
+    setIsConnected(true);
+    toast.success('¡Conectado al stream!');
+  }, [streamId, isHost]);
 
   const handleDisconnected = useCallback((reason?: DisconnectReason) => {
-    console.log('🔴 Desconectado del stream:', reason)
-    setIsConnected(false)
-    toast.error(`Desconectado del stream: ${reason || 'razón desconocida'}`)
-  }, [])
+    console.log('❌ Desconectado del stream:', {
+      reason,
+      reasonName: DisconnectReason[reason || 0],
+      streamId,
+      isHost,
+      currentTime: new Date().toISOString(),
+      attempts: connectionAttempts.current
+    });
+    setIsConnected(false);
+
+    // Mensaje personalizado según la razón de desconexión
+    let errorMessage = 'Desconectado del stream';
+    switch (reason) {
+      case DisconnectReason.DUPLICATE_IDENTITY:
+        errorMessage = 'Ya existe una conexión activa con esta identidad';
+        break;
+      case DisconnectReason.CLIENT_INITIATED:
+        errorMessage = 'Desconexión iniciada por el cliente';
+        break;
+      case DisconnectReason.SERVER_SHUTDOWN:
+        errorMessage = 'El servidor se ha desconectado';
+        break;
+      case DisconnectReason.PARTICIPANT_REMOVED:
+        errorMessage = 'Has sido removido de la transmisión';
+        break;
+      default:
+        errorMessage = `Desconectado del stream: ${reason || 'razón desconocida'}`;
+    }
+    toast.error(errorMessage);
+  }, [streamId, isHost]);
 
   const handleError = useCallback((error: Error) => {
-    console.error('❌ Error en LiveKitRoom:', error)
-    toast.error(`Error al conectar con el servidor de streaming: ${error.message}`)
-  }, [])
+    console.error('❌ Error en LiveKitRoom:', {
+      error,
+      message: error.message,
+      streamId,
+      isHost,
+      currentTime: new Date().toISOString(),
+      attempts: connectionAttempts.current
+    });
+    toast.error(`Error al conectar con el servidor de streaming: ${error.message}`);
+  }, [streamId, isHost]);
 
   if (!token || !process.env.NEXT_PUBLIC_LIVEKIT_URL) {
-    console.error('❌ Falta token o URL de LiveKit')
-    return <StreamSkeleton />
+    console.error('❌ Falta token o URL de LiveKit', {
+      hasToken: !!token,
+      hasServerUrl: !!process.env.NEXT_PUBLIC_LIVEKIT_URL,
+      tokenLength: token?.length
+    });
+    return <StreamSkeleton />;
   }
 
   const roomOptions: RoomOptions & RoomConnectOptions = {
-    adaptiveStream: true,
-    dynacast: true,
-    stopLocalTrackOnUnpublish: true,
+    adaptiveStream: false,
+    dynacast: false,
+    stopLocalTrackOnUnpublish: false,
     disconnectOnPageLeave: false,
+    autoSubscribe: true,
     publishDefaults: {
-      simulcast: true,
-      videoSimulcastLayers: [
-        VideoPresets.h720,
-        VideoPresets.h360
-      ]
-    },
-    videoCaptureDefaults: {
-      resolution: VideoPresets.h720
-    },
-    audioCaptureDefaults: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
+      simulcast: false,
+      videoCodec: 'vp8',
     }
-  }
+  };
 
   return (
     <LayoutContextProvider>
@@ -191,13 +209,14 @@ export const StreamPlayer = ({
         token={token}
         serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
         connect={true}
-        video={isHost}
-        audio={isHost}
+        video={false}
+        audio={false}
         className="h-full"
         onConnected={handleConnected}
         onDisconnected={handleDisconnected}
         onError={handleError}
         options={roomOptions}
+        data-host={isHost}
       >
         <RoomAudioRenderer />
         <div className="h-screen w-full relative flex flex-col bg-zinc-900">
@@ -229,7 +248,7 @@ export const StreamPlayer = ({
                     <p className="text-white mt-4">Conectando al stream...</p>
                   </div>
                 ) : (
-                  <VideoComponent isHost={isHost} />
+                  <VideoComponent isHost={false} />
                 )}
                 
                 {/* Estado de conexión */}

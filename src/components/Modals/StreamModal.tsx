@@ -133,7 +133,26 @@ const StreamModal = ({ session }: StreamModalProps) => {
 
     try {
       if (formData.role === 'viewer') {
-        router.push(`/stream/${formData.title}?isHost=false`);
+        const { data: streamData } = await api.get(`/api/stream/live/${formData.title}`);
+        
+        if (!streamData) {
+          throw new Error('Stream no encontrado');
+        }
+
+        const { data: tokenData } = await api.post('/api/stream/viewer-token', {
+          room_name: streamData.name,
+          identity: session.id,
+          metadata: {
+            isHost: false,
+            name: session.name,
+          }
+        });
+
+        if (tokenData.token) {
+          router.push(`/stream/${streamData.id}?token=${tokenData.token}&isHost=false`);
+        } else {
+          throw new Error('No se pudo obtener el token de visualización');
+        }
         return;
       }
 
@@ -147,6 +166,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
             creator_identity: session.id,
             creator_name: session.name,
             isHost: true,
+            streamId: formData.title,
           }
         });
 
@@ -158,11 +178,14 @@ const StreamModal = ({ session }: StreamModalProps) => {
           room_name: formData.title,
           metadata: {
             creator_identity: session.id,
+            creator_name: session.name,
             title: formData.title,
             description: formData.description,
             enable_chat: true,
             allow_participation: true,
             streamMethod: formData.streamMethod,
+            isHost: true,
+            streamId: formData.title,
           }
         });
 
@@ -190,7 +213,7 @@ const StreamModal = ({ session }: StreamModalProps) => {
           <span>Empezar Stream</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {ingressResponse ? 'Configuración del Stream' : 'Configurar Nuevo Stream'}
@@ -200,10 +223,11 @@ const StreamModal = ({ session }: StreamModalProps) => {
         {!ingressResponse ? (
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">
+              <Label htmlFor="streamRole" className="text-sm font-medium">
                 Rol en el Stream
-              </label>
+              </Label>
               <RadioGroup
+                id="streamRole"
                 value={formData.role}
                 onValueChange={(value: 'host' | 'viewer') => 
                   setFormData(prev => ({ ...prev, role: value }))
@@ -264,9 +288,9 @@ const StreamModal = ({ session }: StreamModalProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <Label htmlFor="thumbnailUpload" className="text-sm font-medium">
                     Miniatura del Stream
-                  </label>
+                  </Label>
                   <div className="flex flex-col gap-4">
                     {formData.thumbnailUrl && (
                       <div className="relative w-full aspect-video rounded-lg overflow-hidden">
@@ -300,10 +324,11 @@ const StreamModal = ({ session }: StreamModalProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <Label htmlFor="streamMethod" className="text-sm font-medium">
                     Método de Streaming
-                  </label>
+                  </Label>
                   <RadioGroup
+                    id="streamMethod"
                     value={formData.streamMethod}
                     onValueChange={(value: 'browser' | 'external') => 
                       setFormData(prev => ({ ...prev, streamMethod: value }))

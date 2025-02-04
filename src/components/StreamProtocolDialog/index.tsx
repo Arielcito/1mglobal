@@ -36,10 +36,9 @@ export function StreamProtocolDialog({ streamId }: StreamProtocolDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <div
-          role="button"
-          tabIndex={0}
-          className="bg-card text-card-foreground rounded-lg shadow-sm p-4 transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
+        <button
+          type="button"
+          className="bg-card text-card-foreground rounded-lg shadow-sm p-4 transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer w-full text-left"
           onKeyDown={(e) => e.key === 'Enter' && setOpen(true)}
         >
           <div className="aspect-video bg-muted rounded-md mb-2" />
@@ -49,9 +48,9 @@ export function StreamProtocolDialog({ streamId }: StreamProtocolDialogProps) {
           <p className="text-sm text-muted-foreground">
             En curso
           </p>
-        </div>
+        </button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Seleccionar Protocolo de Streaming</DialogTitle>
         </DialogHeader>

@@ -164,14 +164,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    // Primero limpiamos el estado y el almacenamiento
     setUser(null);
     clearUserFromStorage();
-    Cookies.remove('token');
-    Cookies.remove('userEmail');
-    Cookies.remove('userId');
-    router.push('/auth/signin');
-  };
+    
+    // Limpiamos todas las cookies relacionadas con la sesión
+    Cookies.remove('token', { path: '/' });
+    Cookies.remove('userEmail', { path: '/' });
+    Cookies.remove('userId', { path: '/' });
+    
+    // Redirigimos después de un pequeño delay para asegurar la limpieza
+    setTimeout(() => {
+      window.location.href = '/auth/signin';
+    }, 100);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoading, refreshUserState }}>

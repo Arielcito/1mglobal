@@ -55,13 +55,15 @@ const StreamContent = () => {
   }
 
   const isHost = streamData?.userId === user?.id
+  const hostName = streamData.user?.name || 'Usuario Desconocido'
+  const hostImage = streamData.user?.image || ''
 
   return (
     <StreamPlayer
       streamId={streamData.id}
       token={tokenData.token}
-      hostName={streamData.user.name}
-      hostImage={streamData.user.image}
+      hostName={hostName}
+      hostImage={hostImage}
       title={streamData.title}
       description={streamData.description}
       viewerCount={0}

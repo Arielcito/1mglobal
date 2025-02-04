@@ -1,15 +1,16 @@
 "use client";
-import Image from "next/image";
+
 import { useState } from "react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import validateEmail from "@/app/libs/validate";
+import api from "@/app/libs/axios";
 const ForgetPassword = () => {
   const [data, setData] = useState({
     email: "",
   });
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!data.email) {
@@ -18,7 +19,7 @@ const ForgetPassword = () => {
     }
 
     try {
-      const res = await axios.post("/api/forget-password/reset", data);
+      const res = await api.post("/api/password-reset/initiate", data);
 
       if (res.status === 404) {
         toast.error("Usuario no encontrado.");
@@ -26,15 +27,13 @@ const ForgetPassword = () => {
       }
 
       if (res.status === 200) {
-        toast.success(res.data);
+        toast.success(res.data.message || "Se ha enviado un enlace a tu correo electrónico.");
         setData({ email: "" });
       }
-
-      setData({ email: "" });
     } catch (error) {
       console.log(error);
       if (axios.isAxiosError(error) && error.response) {
-        toast.error(error.response.data);
+        toast.error(error.response.data.message || "Error al procesar la solicitud");
       } else {
         toast.error("Ocurrió un error inesperado");
       }

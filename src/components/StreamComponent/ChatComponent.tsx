@@ -45,7 +45,6 @@ function ChatMessage({ message }: ChatMessageProps) {
           });
 
           const { data } = await api.get(`/api/users/${message.from.identity}`);
-          console.log('📦 User data received:', data);
           setUserData(data);
         }
       } catch (error) {
@@ -57,13 +56,6 @@ function ChatMessage({ message }: ChatMessageProps) {
   }, [message.from?.identity]);
 
   const displayName = userData?.username || message.from?.name || "Usuario Anónimo";
-  console.log('👤 Display name used:', {
-    userData: userData,
-    fromName: message.from?.name,
-    finalName: displayName,
-    username: userData?.username
-  });
-
   return (
     <div className={cn(
       "flex w-full gap-2 items-start",
