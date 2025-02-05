@@ -100,7 +100,7 @@ export const StreamPlayer = ({
   }, [streamId, isHost, token]);
 
   const handleBackClick = () => {
-    router.back()
+    router.push('/dashboard')
   }
 
   const handleToggleInfo = () => {
@@ -220,11 +220,11 @@ export const StreamPlayer = ({
       >
         <RoomAudioRenderer />
         <div className="h-screen w-full relative flex flex-col bg-zinc-900">
-          {/* Mobile Back Button */}
+          {/* Back Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 left-4 z-50 lg:hidden"
+            className="absolute top-4 left-4 z-50 hover:bg-zinc-800"
             onClick={handleBackClick}
           >
             <ChevronLeft className="h-6 w-6 text-white" />

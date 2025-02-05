@@ -162,11 +162,11 @@ export default function CoursesPage() {
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => router.push(`/courses/${course.course_id}`)}
+                            onClick={() => router.push(`/courses/${course.course_id}/classes`)}
                             className="cursor-pointer"
                           >
                             <Eye className="mr-2 h-4 w-4" />
-                            Ver detalles
+                            Ver clases
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => router.push(`/courses/${course.course_id}/edit`)}

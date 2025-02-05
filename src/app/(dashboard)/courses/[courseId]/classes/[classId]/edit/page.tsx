@@ -19,17 +19,20 @@ import {
 import { Label } from '@/components/ui/label'
 
 interface Class {
-  class_id: number
-  course_id: number
+  classId: number
+  courseId: number
   title: string
   description: string
-  scheduled_at?: string
-  is_live: boolean
-  recording_url?: string
-  content?: string
-  duration?: number
+  scheduledAt: string | null
+  isLive: boolean
+  recordingUrl: string | null
+  content: string | null
+  createdAt: string
+  duration: number
   order: number
+  publishedAt: string | null
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+  updatedAt: string
 }
 
 export default function EditClassPage() {
@@ -46,7 +49,18 @@ export default function EditClassPage() {
     queryKey: ['class', classId],
     queryFn: async () => {
       const { data } = await api.get(`/api/classes/${classId}`)
-      return data
+      const formattedData = {
+        ...data,
+        classId: data.class_id || data.classId,
+        courseId: data.course_id || data.courseId,
+        scheduledAt: data.scheduled_at || data.scheduledAt,
+        isLive: data.is_live || data.isLive,
+        recordingUrl: data.recording_url || data.recordingUrl,
+        publishedAt: data.published_at || data.publishedAt,
+        updatedAt: data.updated_at || data.updatedAt,
+        createdAt: data.created_at || data.createdAt,
+      }
+      return formattedData
     },
     onSuccess: (data) => {
       setFormData(data)
@@ -91,7 +105,7 @@ export default function EditClassPage() {
   const handleDateChange = (value: string) => {
     setFormData(prev => ({
       ...prev,
-      scheduled_at: value
+      scheduledAt: value
     }))
   }
 
@@ -130,12 +144,12 @@ export default function EditClassPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduled_at">Fecha programada</Label>
+                <Label htmlFor="scheduledAt">Fecha programada</Label>
                 <Input
-                  id="scheduled_at"
-                  name="scheduled_at"
+                  id="scheduledAt"
+                  name="scheduledAt"
                   type="datetime-local"
-                  value={formData.scheduled_at?.slice(0, 16) || ''}
+                  value={formData.scheduledAt?.slice(0, 16) || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -187,11 +201,11 @@ export default function EditClassPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="recording_url">URL de la grabación</Label>
+              <Label htmlFor="recordingUrl">URL de la grabación</Label>
               <Input
-                id="recording_url"
-                name="recording_url"
-                value={formData.recording_url || ''}
+                id="recordingUrl"
+                name="recordingUrl"
+                value={formData.recordingUrl || ''}
                 onChange={handleInputChange}
                 placeholder="https://ejemplo.com/grabacion.mp4"
               />
