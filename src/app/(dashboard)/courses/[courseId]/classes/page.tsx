@@ -220,7 +220,7 @@ export default function CourseClassesPage() {
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
-                              onClick={() => router.push(`/courses/${courseId}/classes/${classItem.class_id}`)}
+                              onClick={() => router.push(`/upload`)}
                               className="cursor-pointer"
                             >
                               <Video className="mr-2 h-4 w-4" />
