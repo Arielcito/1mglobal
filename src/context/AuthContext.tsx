@@ -115,24 +115,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = response.data;
       const userData = data.user;
       
-      Cookies.set('token', data.token, { 
-        secure: true,
-        sameSite: 'strict',
+      // Configuración mejorada de cookies para producción
+      const cookieOptions = {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
         expires: 7,
-        path: '/'
-      });
-      Cookies.set('userEmail', email, { 
-        secure: true,
-        sameSite: 'strict',
-        expires: 7,
-        path: '/'
-      });
-      Cookies.set('userId', userData.id, { 
-        secure: true,
-        sameSite: 'strict',
-        expires: 7,
-        path: '/'
-      });
+        path: '/',
+        domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
+      };
+
+      Cookies.set('token', data.token, cookieOptions);
+      Cookies.set('userEmail', email, cookieOptions);
+      Cookies.set('userId', userData.id, cookieOptions);
 
       const userToSet = {
         id: userData.id,

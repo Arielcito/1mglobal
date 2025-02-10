@@ -18,18 +18,20 @@ export function middleware(request: NextRequest) {
   // Si el usuario no está autenticado y trata de acceder a rutas protegidas
   if (!token && isDashboardRoute) {
     const signinUrl = new URL('/auth/signin', request.url)
-    signinUrl.searchParams.set('callbackUrl', pathname)
+    signinUrl.searchParams.set('callbackUrl', encodeURIComponent(pathname))
     return NextResponse.redirect(signinUrl)
   }
   
-  // Si el usuario accede a la raíz y está autenticado
-  if (token && pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-  
-  // Si el usuario accede a la raíz y no está autenticado
-  if (!token && pathname === '/') {
-    return NextResponse.redirect(new URL('/auth/signin', request.url))
+  // Si el usuario accede a la raíz
+  if (pathname === '/') {
+    if (token) {
+      // Evitamos redireccionar si ya estamos en /dashboard
+      if (pathname !== '/dashboard') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    } else {
+      return NextResponse.redirect(new URL('/auth/signin', request.url))
+    }
   }
 
   return NextResponse.next()

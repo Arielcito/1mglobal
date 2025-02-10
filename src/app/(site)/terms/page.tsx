@@ -20,6 +20,27 @@ const TermsPage = () => {
           
           <div className="space-y-8 text-gray-100">
             <section className="hover:bg-white/5 p-6 rounded-lg transition-all duration-300">
+              <h2 className="text-2xl font-semibold text-red-400 mb-4">DESCARGO DE RESPONSABILIDAD DE TRADING</h2>
+              <div className="space-y-4">
+                <p className="leading-relaxed">
+                  OneMovementGlobal no garantiza la precisión, fiabilidad ni rentabilidad de los resultados generados por el servicio de Copy Trading. El trading es una actividad de renta variable, y los resultados pasados no garantizan rendimientos futuros.
+                </p>
+                <p className="leading-relaxed">
+                  El usuario asume todos los riesgos asociados con el uso de este servicio y reconoce que OneMovementGlobal no será responsable de ninguna pérdida o daño, directo o indirecto, derivado de su uso.
+                </p>
+                <p className="leading-relaxed">
+                  El servicio de Copy Trading no está exento de riesgos, y su uso puede generar pérdidas. OneMovementGlobal no ofrece asesoría financiera y no se hace responsable de cualquier reclamo, daño o perjuicio que resulte de su utilización.
+                </p>
+                <p className="leading-relaxed">
+                  El usuario acepta indemnizar y eximir de responsabilidad a OneMovementGlobal, sus afiliados, directivos, empleados y agentes frente a cualquier reclamación o demanda derivada del uso del servicio.
+                </p>
+                <p className="leading-relaxed">
+                  Este descargo de responsabilidad es parte integral de la relación entre el usuario y OneMovementGlobal, y su aceptación es obligatoria para el uso del servicio.
+                </p>
+              </div>
+            </section>
+
+            <section className="hover:bg-white/5 p-6 rounded-lg transition-all duration-300">
               <h2 className="text-2xl font-semibold text-blue-300 mb-4">1. Introducción</h2>
               <p className="mb-4 leading-relaxed">
                 Bienvenido a 1MovementGlobal. Al acceder y utilizar nuestra plataforma, aceptas estos términos y condiciones en su totalidad.

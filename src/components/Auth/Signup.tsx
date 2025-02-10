@@ -30,6 +30,7 @@ const Signup = () => {
     confirmPassword: "",
   });
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptDisclaimer, setAcceptDisclaimer] = useState(false);
 
   const { username, email, password, confirmPassword } = data;
 
@@ -90,6 +91,26 @@ const Signup = () => {
         variant: "destructive",
         title: "Error de validación",
         description: "Las contraseñas no coinciden"
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!acceptDisclaimer) {
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Debes aceptar el descargo de responsabilidad"
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!acceptTerms) {
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Debes aceptar los términos y condiciones"
       });
       setIsLoading(false);
       return;
@@ -343,40 +364,87 @@ const Signup = () => {
             </div>
 
             <div className="mb-[30px]">
-              <label
-                htmlFor="terms"
-                className="flex cursor-pointer select-none items-center text-sm text-gray-400"
-              >
-                <input
-                  type="checkbox"
-                  id="terms"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="sr-only peer"
-                  required
-                />
-                <span className="mr-[10px] flex h-5 w-5 items-center justify-center rounded border border-stroke-dark peer-checked:border-primary">
-                  <svg
-                    className={`h-3 w-3 text-primary ${
-                      acceptTerms ? 'block' : 'hidden'
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+              <div className="mb-6 p-4 border border-stroke-dark rounded-md bg-black/50">
+                <h4 className="text-white font-semibold mb-4">DESCARGO DE RESPONSABILIDAD</h4>
+                <div className="text-sm text-gray-400 space-y-4">
+                  <p>OneMovementGlobal no garantiza la precisión, fiabilidad ni rentabilidad de los resultados generados por el servicio de Copy Trading. El trading es una actividad de renta variable, y los resultados pasados no garantizan rendimientos futuros.</p>
+                  <p>El usuario asume todos los riesgos asociados con el uso de este servicio y reconoce que OneMovementGlobal no será responsable de ninguna pérdida o daño, directo o indirecto, derivado de su uso.</p>
+                  <p>El servicio de Copy Trading no está exento de riesgos, y su uso puede generar pérdidas. OneMovementGlobal no ofrece asesoría financiera y no se hace responsable de cualquier reclamo, daño o perjuicio que resulte de su utilización.</p>
+                  <p>El usuario acepta indemnizar y eximir de responsabilidad a OneMovementGlobal, sus afiliados, directivos, empleados y agentes frente a cualquier reclamación o demanda derivada del uso del servicio.</p>
+                  <p>Este descargo de responsabilidad es parte integral de la relación entre el usuario y OneMovementGlobal, y su aceptación es obligatoria para el uso del servicio.</p>
+                </div>
+                <div className="mt-4">
+                  <label
+                    htmlFor="disclaimer"
+                    className="flex cursor-pointer select-none items-center text-sm text-gray-400"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
+                    <input
+                      type="checkbox"
+                      id="disclaimer"
+                      checked={acceptDisclaimer}
+                      onChange={(e) => setAcceptDisclaimer(e.target.checked)}
+                      className="sr-only peer"
+                      required
                     />
-                  </svg>
-                </span>
-                Acepto los{" "}
-                <Link href="/terms" className="ml-1 text-primary hover:underline">
-                  Términos y Condiciones
-                </Link>
-              </label>
+                    <span className="mr-[10px] flex h-5 w-5 items-center justify-center rounded border border-stroke-dark peer-checked:border-primary">
+                      <svg
+                        className={`h-3 w-3 text-primary ${
+                          acceptDisclaimer ? 'block' : 'hidden'
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </span>
+                    ACEPTO Y CONFIRMO
+                  </label>
+                </div>
+              </div>
+              <div className="mt-6">
+                <label
+                  htmlFor="terms"
+                  className="flex cursor-pointer select-none items-center text-sm text-gray-400"
+                >
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="sr-only peer"
+                    required
+                  />
+                  <span className="mr-[10px] flex h-5 w-5 items-center justify-center rounded border border-stroke-dark peer-checked:border-primary">
+                    <svg
+                      className={`h-3 w-3 text-primary ${
+                        acceptTerms ? 'block' : 'hidden'
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </span>
+                  Acepto los{" "}
+                  <Link href="/terms" className="ml-1 text-primary hover:underline">
+                    Términos y Condiciones
+                  </Link>
+                </label>
+              </div>
             </div>
 
             <button
