@@ -5,38 +5,50 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import validateEmail from "@/app/libs/validate";
 import api from "@/app/libs/axios";
+
 const ForgetPassword = () => {
   const [data, setData] = useState({
     email: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
 
     if (!data.email) {
       toast.error("Por favor, ingrese su correo electrónico.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!validateEmail(data.email)) {
+      toast.error("Por favor, ingrese un correo electrónico válido.");
+      setIsLoading(false);
       return;
     }
 
     try {
-      const res = await api.post("/api/password-reset/initiate", data);
+      const res = await api.post("/api/users/password/request-reset", {
+        email: data.email
+      });
 
-      if (res.status === 404) {
-        toast.error("Usuario no encontrado.");
-        return;
-      }
-
-      if (res.status === 200) {
-        toast.success(res.data.message || "Se ha enviado un enlace a tu correo electrónico.");
-        setData({ email: "" });
-      }
+      toast.success("Se ha enviado un enlace a tu correo electrónico para restablecer tu contraseña.");
+      setData({ email: "" });
     } catch (error) {
-      console.log(error);
-      if (axios.isAxiosError(error) && error.response) {
-        toast.error(error.response.data.message || "Error al procesar la solicitud");
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          toast.error("No existe una cuenta con este correo electrónico.");
+        } else if (error.response?.status === 500) {
+          toast.error("Error al enviar el correo electrónico. Por favor, intenta más tarde.");
+        } else {
+          toast.error(error.response?.data?.message || "Error al procesar la solicitud");
+        }
       } else {
         toast.error("Ocurrió un error inesperado");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,20 +83,22 @@ const ForgetPassword = () => {
 
                 <input
                   type="email"
+                  id="email"
                   placeholder="Ingresa tu correo electrónico"
                   name="email"
                   value={data.email}
                   onChange={(e) => setData({ ...data, email: e.target.value })}
                   className="w-full rounded-md border border-stroke bg-white px-6 py-3 text-base font-medium text-body outline-none focus:border-primary focus:shadow-input dark:border-stroke-dark dark:bg-black dark:text-white dark:focus:border-primary"
+                  disabled={isLoading}
                 />
               </div>
 
               <button
-                aria-label="restablecer contraseña"
-                className="flex w-full justify-center rounded-md bg-primary p-3 text-base font-medium text-white hover:bg-opacity-90"
                 type="submit"
+                disabled={isLoading}
+                className="flex w-full justify-center rounded-md bg-primary p-3 text-base font-medium text-white hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Enviar Enlace de Restablecimiento
+                {isLoading ? "Enviando..." : "Enviar Enlace de Restablecimiento"}
               </button>
             </form>
           </div>
