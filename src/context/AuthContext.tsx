@@ -75,49 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      const token = Cookies.get('token');
-      const email = Cookies.get('userEmail');
-      const storedUser = getUserFromStorage();
-      
-      if (storedUser && token) {
-        setUser(storedUser);
-        setIsLoading(false);
-        return;
-      }
-      
-      if (token && email) {
-        const userData = await fetchUserState(token);
-        console.log("userData", userData)
-        if (userData) {
-          const newUser = { id: userData.id, token, email, ...userData };
-          setUser(newUser);
-          saveUserToStorage(newUser);
-        } else {
-          Cookies.remove('token');
-          Cookies.remove('userEmail');
-          Cookies.remove('userId');
-          clearUserFromStorage();
-        }
-      }
-      setIsLoading(false);
-    };
-
-    initializeAuth();
-  }, [fetchUserState]);
-
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
       const response = await api.post('/api/auth/login', { email, password });
-      console.log("[LOGIN_CONTEXT] Respuesta del login:", response);
-      // Solo procedemos si la respuesta es exitosa
+      
       if (response.status === 200) {
         const data = response.data;
         const userData = data.user;
         
-        // Configuración mejorada de cookies para producción
         const cookieOptions = {
           secure: process.env.NODE_ENV === 'production',
           sameSite: process.env.NODE_ENV === 'production' ? 'Strict' as const : 'Lax' as const,
@@ -126,12 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
         };
 
-        // Establecemos las cookies
         Cookies.set('token', data.token, cookieOptions);
         Cookies.set('userEmail', email, cookieOptions);
         Cookies.set('userId', userData.id, cookieOptions);
 
-        // Preparamos y guardamos los datos del usuario
         const userToSet = {
           id: userData.id,
           email: userData.email,
@@ -148,28 +112,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userToSet);
         saveUserToStorage(userToSet);
         
-        // Solo redirigimos si todo está correcto
-        router.push('/dashboard');
+        // Aseguramos que el estado se actualice antes de redirigir
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Redirigimos y luego actualizamos el estado de carga
+        await router.push('/dashboard');
+        setTimeout(() => setIsLoading(false), 100);
+        
         return true;
       }
       
-      // Si el status no es 200, lanzamos un error
       throw new Error('Credenciales incorrectas');
       
     } catch (error: unknown) {
-      // Asegurarnos de que no haya datos de sesión en caso de error
       setUser(null);
       clearUserFromStorage();
       Cookies.remove('token', { path: '/' });
       Cookies.remove('userEmail', { path: '/' });
       Cookies.remove('userId', { path: '/' });
-      
-      // Propagamos el error para que el componente lo maneje
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        setIsLoading(true);
+        const token = Cookies.get('token');
+        const email = Cookies.get('userEmail');
+        const storedUser = getUserFromStorage();
+        
+        if (storedUser && token) {
+          setUser(storedUser);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (token && email) {
+          const userData = await fetchUserState(token);
+          if (userData) {
+            const newUser = { id: userData.id, token, email, ...userData };
+            setUser(newUser);
+            saveUserToStorage(newUser);
+          } else {
+            Cookies.remove('token');
+            Cookies.remove('userEmail');
+            Cookies.remove('userId');
+            clearUserFromStorage();
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, [fetchUserState]);
 
   const logout = useCallback(() => {
     // Primero limpiamos el estado y el almacenamiento

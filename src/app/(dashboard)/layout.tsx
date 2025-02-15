@@ -9,6 +9,7 @@ import { DashboardSidebar } from '@/components/Dashboard/Sidebar'
 import { DashboardHeader } from '@/components/Dashboard/Header'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { useAuth } from '@/context/AuthContext'
+import { useRouter } from "next/navigation"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -26,37 +27,42 @@ const queryClient = new QueryClient({
 
 export default function DashboardLayout({ children }: LayoutProps) {
   const { user, isLoading } = useAuth()
-  const [isTransitioning, setIsTransitioning] = useState(true)
+  const router = useRouter()
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
-    if (!isLoading) {
-      const timer = setTimeout(() => {
-        setIsTransitioning(false);
-      }, 500);
+    if (!isLoading && !user && !isRedirecting) {
+      setIsRedirecting(true)
+      router.push('/auth/signin')
 
-      return () => clearTimeout(timer);
+      // Timeout para refrescar la página si la redirección toma más de 5 segundos
+      const timeoutId = setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.reload()
+        }
+      }, 5000)
+
+      return () => clearTimeout(timeoutId)
     }
-  }, [isLoading]);
+  }, [user, isLoading, router, isRedirecting])
 
-  // Mostrar spinner mientras se carga o está en transición
-  if (isLoading || isTransitioning) {
+  if (isLoading || isRedirecting) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gradient-to-b from-zinc-900 to-zinc-950">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
+          <div className="text-white text-xl">
+            {isRedirecting ? "Redirigiendo..." : "Cargando..."}
+          </div>
+        </div>
       </div>
-    );
+    )
   }
 
-  // Si no hay usuario después de cargar, mostrar error
   if (!user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-gradient-to-b from-zinc-900 to-zinc-950">
-        <div className="text-white text-xl">Sesión no válida</div>
-      </div>
-    );
+    return null
   }
 
-  // Usuario autenticado, mostrar dashboard
   return (
     <QueryClientProvider client={queryClient}>
       <SidebarProvider>
