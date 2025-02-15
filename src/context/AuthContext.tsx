@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await api.post('/api/auth/login', { email, password });
-      
+      console.log("[LOGIN_CONTEXT] Respuesta del login:", response);
       // Solo procedemos si la respuesta es exitosa
       if (response.status === 200) {
         const data = response.data;
