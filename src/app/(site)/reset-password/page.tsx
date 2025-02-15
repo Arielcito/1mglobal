@@ -1,9 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import ResetPassword from "@/components/Auth/ResetPassword";
 
-const ResetPasswordPage = () => {
+const ResetPasswordContent = () => {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -27,6 +28,18 @@ const ResetPasswordPage = () => {
   }
 
   return <ResetPassword token={token} />;
+};
+
+const ResetPasswordPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
+  );
 };
 
 export default ResetPasswordPage; 
