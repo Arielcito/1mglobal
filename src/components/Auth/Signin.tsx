@@ -28,23 +28,30 @@ const Signin = () => {
           title: "Error de validación",
           description: "Por favor complete todos los campos"
         });
+        setIsLoading(false);
         return;
       }
 
-      await login(data.email, data.password);
+      const loginSuccess = await login(data.email, data.password);
       
-      toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión correctamente"
-      });
+      if (loginSuccess) {
+        toast({
+          title: "¡Bienvenido!",
+          description: "Has iniciado sesión correctamente"
+        });
+      }
       
     } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'object' && error !== null && 'response' in error
+          ? (error.response as { data?: { message?: string } })?.data?.message || 'Error al iniciar sesión'
+          : "Credenciales incorrectas. Por favor, verifique sus datos.";
+
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error instanceof Error 
-          ? error.message 
-          : "Ocurrió un error inesperado. Por favor, intente nuevamente"
+        title: "Error de autenticación",
+        description: errorMessage
       });
     } finally {
       setIsLoading(false);

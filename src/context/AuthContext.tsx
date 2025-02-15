@@ -20,7 +20,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   refreshUserState: () => Promise<void>;
@@ -111,50 +111,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await api.post('/api/auth/login', { email, password });
-      console.log("response", response)
-      const data = response.data;
-      const userData = data.user;
       
-      // Configuración mejorada de cookies para producción
-      const cookieOptions = {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'Strict' as const : 'Lax' as const,
-        expires: 7,
-        path: '/',
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
-      };
+      // Solo procedemos si la respuesta es exitosa
+      if (response.status === 200) {
+        const data = response.data;
+        const userData = data.user;
+        
+        // Configuración mejorada de cookies para producción
+        const cookieOptions = {
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'Strict' as const : 'Lax' as const,
+          expires: 7,
+          path: '/',
+          domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
+        };
 
-      Cookies.set('token', data.token, cookieOptions);
-      Cookies.set('userEmail', email, cookieOptions);
-      Cookies.set('userId', userData.id, cookieOptions);
+        // Establecemos las cookies
+        Cookies.set('token', data.token, cookieOptions);
+        Cookies.set('userEmail', email, cookieOptions);
+        Cookies.set('userId', userData.id, cookieOptions);
 
-      const userToSet = {
-        id: userData.id,
-        email: userData.email,
-        token: data.token,
-        name: userData.name,
-        isAdmin: userData.isAdmin,
-        image: userData.image,
-        emailVerified: userData.emailVerified,
-        username: userData.username,
-        fullName: userData.fullName,
-        createdAt: userData.createdAt
-      };
+        // Preparamos y guardamos los datos del usuario
+        const userToSet = {
+          id: userData.id,
+          email: userData.email,
+          token: data.token,
+          name: userData.name,
+          isAdmin: userData.isAdmin,
+          image: userData.image,
+          emailVerified: userData.emailVerified,
+          username: userData.username,
+          fullName: userData.fullName,
+          createdAt: userData.createdAt
+        };
 
-      setUser(userToSet);
-      saveUserToStorage(userToSet);
+        setUser(userToSet);
+        saveUserToStorage(userToSet);
+        
+        // Solo redirigimos si todo está correcto
+        router.push('/dashboard');
+        return true;
+      }
       
-      setIsLoading(false);
-      router.push('/dashboard');
-      
-      // Esperamos un momento y luego recargamos
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      // Si el status no es 200, lanzamos un error
+      throw new Error('Credenciales incorrectas');
       
     } catch (error: unknown) {
-      setIsLoading(false);
+      // Asegurarnos de que no haya datos de sesión en caso de error
+      setUser(null);
+      clearUserFromStorage();
+      Cookies.remove('token', { path: '/' });
+      Cookies.remove('userEmail', { path: '/' });
+      Cookies.remove('userId', { path: '/' });
+      
+      // Propagamos el error para que el componente lo maneje
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

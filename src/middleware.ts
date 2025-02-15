@@ -11,8 +11,20 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.includes(pathname)
   const isDashboardRoute = pathname.startsWith('/dashboard')
   
-  // Verificar token si existe
-  if (token) {
+  // No aplicar middleware a rutas de API
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next()
+  }
+
+  // Si el usuario no está autenticado y trata de acceder a rutas protegidas
+  if (!token && isDashboardRoute) {
+    const signinUrl = new URL('/auth/signin', request.url)
+    signinUrl.searchParams.set('callbackUrl', encodeURIComponent(pathname))
+    return NextResponse.redirect(signinUrl)
+  }
+
+  // Verificar token solo para rutas protegidas
+  if (token && isDashboardRoute) {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET)
       await jwtVerify(token, secret)
@@ -31,13 +43,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
   
-  // Si el usuario no está autenticado y trata de acceder a rutas protegidas
-  if (!token && isDashboardRoute) {
-    const signinUrl = new URL('/auth/signin', request.url)
-    signinUrl.searchParams.set('callbackUrl', encodeURIComponent(pathname))
-    return NextResponse.redirect(signinUrl)
-  }
-  
   // Si el usuario accede a la raíz
   if (pathname === '/') {
     if (token) {
@@ -53,8 +58,6 @@ export const config = {
   matcher: [
     '/',
     '/dashboard/:path*',
-    '/auth/signin',
-    '/auth/signup',
-    '/auth/forget-password'
+    '/auth/:path*'
   ]
 }
