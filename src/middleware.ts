@@ -25,13 +25,9 @@ export function middleware(request: NextRequest) {
   // Si el usuario accede a la raíz
   if (pathname === '/') {
     if (token) {
-      // Evitamos redireccionar si ya estamos en /dashboard
-      if (pathname !== '/dashboard') {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-      }
-    } else {
-      return NextResponse.redirect(new URL('/auth/signin', request.url))
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+    return NextResponse.redirect(new URL('/auth/signin', request.url))
   }
 
   return NextResponse.next()

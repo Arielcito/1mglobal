@@ -222,7 +222,7 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
     );
   }
 
-  const hostState = participantStates.get(hostParticipant?.identity || fallbackVideoTrack?.participant.identity);
+  const hostState = hostParticipant ? participantStates.get(hostParticipant.identity) : null;
 
   return (
     <div className="relative h-full w-full bg-black">
@@ -235,9 +235,9 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       )}
 
       <div className="relative w-full h-full">
-        {(hostVideoTrack?.publication || fallbackVideoTrack?.publication) && (
+        {((hostVideoTrack?.publication && 'trackSid' in hostVideoTrack) || (fallbackVideoTrack?.publication && 'trackSid' in fallbackVideoTrack)) && (
           <VideoTrack
-            trackRef={hostVideoTrack || fallbackVideoTrack}
+            trackRef={hostVideoTrack?.publication && 'trackSid' in hostVideoTrack ? hostVideoTrack : undefined}
             className="h-full w-full object-cover"
           />
         )}

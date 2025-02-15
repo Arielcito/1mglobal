@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Configuración mejorada de cookies para producción
       const cookieOptions = {
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'Strict' as const : 'Lax' as const,
         expires: 7,
         path: '/',
         domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
