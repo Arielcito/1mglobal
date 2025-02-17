@@ -1,26 +1,21 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import type { ParticipantMetadata, RoomMetadata } from "@/lib/controller";
 import {
-  AudioTrack,
-  StartAudio,
   VideoTrack,
   useLocalParticipant,
   useParticipants,
   useRoomContext,
   useTracks,
-  RoomAudioRenderer,
+  type TrackReference
 } from '@livekit/components-react';
 import { 
   ConnectionState, 
   Track,
-  RoomEvent,
   ConnectionQuality,
+  TrackPublication
 } from 'livekit-client';
-import { Badge } from "@/components/ui/badge";
 import { Wifi, WifiOff } from 'lucide-react';
-import { toast } from "sonner";
 
 interface VideoComponentProps {
   isHost?: boolean;
@@ -124,17 +119,17 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
         isLocalParticipant: p.identity === localParticipant.identity,
         isHost
       });
-      return isHost && p.identity === localParticipant.identity;
+      return false;
     }
     try {
-      const metadata = JSON.parse(p.metadata);
+      const metadata = JSON.parse(p.metadata) as { isHost: boolean };
       console.log('🔍 Metadata del participante:', {
         identity: p.identity,
         metadata,
         isLocalParticipant: p.identity === localParticipant.identity,
         isHost
       });
-      return metadata.isHost === true || (isHost && p.identity === localParticipant.identity);
+      return metadata.isHost === true;
     } catch (error) {
       console.log('❌ Error al parsear metadata:', {
         identity: p.identity,
@@ -145,56 +140,29 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
     }
   });
 
-  // Filtrar tracks del host
-  const hostVideoTrack = videoTracks.find(track => 
-    track.participant.identity === hostParticipant?.identity
-  );
+  // Filtrar tracks del host o usar el primer track disponible
+  const selectedVideoTrack = (hostParticipant 
+    ? videoTracks.find(track => 
+        track.participant.identity === hostParticipant.identity && 
+        track.publication instanceof TrackPublication
+      )
+    : videoTracks.find(track => track.publication instanceof TrackPublication)) as TrackReference | undefined;
 
-  console.log('🎥 Host Video Track:', {
+  console.log('🎥 Selected Video Track:', {
     hostParticipantId: hostParticipant?.identity,
     availableTracks: videoTracks.map(t => ({
       participantId: t.participant.identity,
       source: t.source,
       isSubscribed: t.publication?.isSubscribed
     })),
-    selectedTrack: hostVideoTrack ? {
-      participantId: hostVideoTrack.participant.identity,
-      source: hostVideoTrack.source,
-      isSubscribed: hostVideoTrack.publication?.isSubscribed
+    selectedTrack: selectedVideoTrack ? {
+      participantId: selectedVideoTrack.participant.identity,
+      source: selectedVideoTrack.source,
+      isSubscribed: selectedVideoTrack.publication?.isSubscribed
     } : null
   });
 
-  // Si no hay host pero hay tracks disponibles, mostrar el primer track
-  const fallbackVideoTrack = !hostVideoTrack && videoTracks.length > 0 ? videoTracks[0] : null;
-
-  const hostAudioTrack = audioTracks.find(track => 
-    track.participant.identity === hostParticipant?.identity
-  );
-
-  useEffect(() => {
-    const updateParticipantState = () => {
-      const newStates = new Map<string, ParticipantState>();
-      for (const participant of participants) {
-        newStates.set(participant.identity, {
-          connectionQuality: participant.connectionQuality,
-        });
-      }
-      setParticipantStates(newStates);
-    };
-
-    updateParticipantState();
-
-    const handleEvent = () => updateParticipantState();
-    for (const participant of participants) {
-      participant.on('connectionQualityChanged', handleEvent);
-    }
-
-    return () => {
-      for (const participant of participants) {
-        participant.off('connectionQualityChanged', handleEvent);
-      }
-    };
-  }, [participants]);
+  const hostState = hostParticipant ? participantStates.get(hostParticipant.identity) : null;
 
   const getConnectionQualityIcon = useCallback((quality: ConnectionQuality) => {
     switch (quality) {
@@ -209,7 +177,7 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
     }
   }, []);
 
-  if (!hostParticipant && !fallbackVideoTrack) {
+  if (!selectedVideoTrack) {
     return (
       <div className="relative h-full w-full bg-black flex items-center justify-center">
         <div className="text-center p-4">
@@ -222,8 +190,6 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
     );
   }
 
-  const hostState = hostParticipant ? participantStates.get(hostParticipant.identity) : null;
-
   return (
     <div className="relative h-full w-full bg-black">
       {roomState !== ConnectionState.Connected && (
@@ -235,13 +201,11 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
       )}
 
       <div className="relative w-full h-full">
-        {((hostVideoTrack?.publication && 'trackSid' in hostVideoTrack) || (fallbackVideoTrack?.publication && 'trackSid' in fallbackVideoTrack)) && (
-          <VideoTrack
-            trackRef={hostVideoTrack?.publication && 'trackSid' in hostVideoTrack ? hostVideoTrack : undefined}
-            className="h-full w-full object-cover"
-          />
-        )}
-        {!hostVideoTrack?.publication && !fallbackVideoTrack?.publication && (
+        <VideoTrack
+          trackRef={selectedVideoTrack}
+          className="h-full w-full object-cover"
+        />
+        {!selectedVideoTrack.publication && (
           <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
             <p className="text-white">No hay video disponible</p>
           </div>
@@ -255,7 +219,6 @@ export default function VideoComponent({ isHost = false }: VideoComponentProps) 
           </span>
         </div>
       </div>
-
     </div>
   );
 }

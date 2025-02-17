@@ -192,17 +192,18 @@ export const StreamPlayer = ({
   }
 
   const roomOptions: RoomOptions & RoomConnectOptions = {
-    adaptiveStream: false,
-    dynacast: false,
-    stopLocalTrackOnUnpublish: false,
-    disconnectOnPageLeave: false,
+    adaptiveStream: true,
+    dynacast:true,
+    stopLocalTrackOnUnpublish: true,
+    disconnectOnPageLeave: true,
     autoSubscribe: true,
     publishDefaults: {
-      simulcast: false,
+      simulcast: true,
       videoCodec: 'vp8',
     }
   };
-
+  console.log('🔄 token:', token);
+  console.log('🔄 process.env.NEXT_PUBLIC_LIVEKIT_URL:', process.env.NEXT_PUBLIC_LIVEKIT_URL);
   return (
     <LayoutContextProvider>
       <LiveKitRoom
