@@ -86,13 +86,6 @@ export default function CopyTradingPage() {
               <p className="mt-3 text-gray-200 font-medium leading-relaxed border-l-2 border-primary/30 pl-3 py-1">
                 {alert.message}
               </p>
-              {alert.groupId && (
-                <div className="mt-3 text-xs flex items-center">
-                  <span className="bg-primary/10 text-primary rounded-lg px-3 py-1 font-medium">
-                    Grupo: {alert.groupId}
-                  </span>
-                </div>
-              )}
             </div>
           ))
         ) : (
