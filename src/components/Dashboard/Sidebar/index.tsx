@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Video, BookOpen, Key, Upload, Menu, GraduationCap, Sparkles, BookOpenCheck, Users } from 'lucide-react'
+import { Video, BookOpen, Key, Upload, Menu, GraduationCap, Sparkles, BookOpenCheck, Users, Bell } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
@@ -36,6 +36,7 @@ const menuPaths = {
   '/courses': 'courses',
   '/news': 'news',
   '/trading-info': 'trading-info',
+  '/copy-trading': 'copy-trading',
   '/about': 'about'
 } as const
 
@@ -87,6 +88,9 @@ export const DashboardSidebar = () => {
         break
       case 'trading-info':
         router.push('/trading-info')
+        break
+      case 'copy-trading':
+        router.push('/copy-trading')
         break
       case 'about':
         router.push('/about')
@@ -152,6 +156,17 @@ export const DashboardSidebar = () => {
               >
                 <BookOpenCheck className="mr-3 h-5 w-5" />
                 ¿Qué es Trading?
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => handleMenuClick('copy-trading')}
+                isActive={activeMenu === 'copy-trading'}
+                className="flex items-center w-full px-6 py-3 text-base md:text-lg"
+              >
+                <Bell className="mr-3 h-5 w-5" />
+                Copy Trading
               </SidebarMenuButton>
             </SidebarMenuItem>
 
