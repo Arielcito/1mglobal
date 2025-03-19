@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery, useQueryClient } from 'react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/app/libs/axios'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -62,9 +62,6 @@ export default function EditClassPage() {
       }
       return formattedData
     },
-    onSuccess: (data) => {
-      setFormData(data)
-    }
   })
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -73,8 +70,8 @@ export default function EditClassPage() {
 
     try {
       await api.put(`/api/classes/${classId}`, formData)
-      await queryClient.invalidateQueries(['classes'])
-      await queryClient.invalidateQueries(['class', classId])
+      await queryClient.invalidateQueries({ queryKey: ['classes'] })
+      await queryClient.invalidateQueries({ queryKey: ['class', classId] }  )
       
       toast({
         title: "Clase actualizada",

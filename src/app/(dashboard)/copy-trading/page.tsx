@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { CopyTradingDisclaimer } from '@/components/CopyTrading/Disclaimer'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import api from '@/app/libs/axios'
 import { Bell } from 'lucide-react'
 import { alertService } from '@/services/api'
@@ -13,29 +13,26 @@ export default function CopyTradingPage() {
   const { user } = useAuth()
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean | null>(null)
 
-  const { data: userTerms, isLoading: isLoadingTerms } = useQuery(
-    ['user-terms'],
-    async () => {
+  const { data: userTerms, isLoading: isLoadingTerms } = useQuery({
+    queryKey: ['user-terms'],
+    queryFn: async () => {
       const { data } = await api.get(`/api/users/${user?.id}`)
       return data
     },
-    {
-      enabled: !!user?.id,
-      onSuccess: (data) => {
-        setHasAcceptedTerms(data.termsAccepted || false)
-      }
+    enabled: !!user?.id,
+    select: (data: { termsAccepted: boolean }) => {
+      setHasAcceptedTerms(data.termsAccepted || false)
+      return data
     }
-  )
+  })
 
-  const { data: alerts, isLoading: isLoadingAlerts } = useQuery<Alert[]>(
-    ['copy-trading-alerts'],
-    async () => {
+  const { data: alerts, isLoading: isLoadingAlerts } = useQuery<Alert[]>({
+    queryKey: ['copy-trading-alerts'],
+    queryFn: async () => {
       return await alertService.getAlerts()
     },
-    {
-      enabled: !!user?.id && hasAcceptedTerms === true
-    }
-  )
+    enabled: !!user?.id && hasAcceptedTerms === true
+  })
 
   const handleDisclaimerAccepted = (accepted: boolean) => {
     setHasAcceptedTerms(accepted)

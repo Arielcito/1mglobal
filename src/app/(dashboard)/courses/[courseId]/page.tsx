@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { CourseDetailSkeleton } from '@/components/Courses/CourseDetailSkeleton'
 import api from '@/app/libs/axios'
 import {

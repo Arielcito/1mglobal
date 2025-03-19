@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import api from '@/app/libs/axios';
 import Urlcard from "@/components/Card/Urlcard";
@@ -18,14 +18,12 @@ const fetchStreamData = async (userId: string) => {
 export default function KeysPage() {
   const {user} = useAuth()
   
-  const { data: streamData, isLoading, refetch } = useQuery(
-    STREAM_KEYS.serverUrl(user?.id ?? ''),
-    () => fetchStreamData(user?.id ?? ''),
-    {
-      enabled: !!user?.id, // Only run query if we have a user ID
-      refetchOnWindowFocus: false,
-    }
-  )
+  const { data: streamData, isLoading, refetch } = useQuery({
+    queryKey: STREAM_KEYS.serverUrl(user?.id ?? ''),
+    queryFn: () => fetchStreamData(user?.id ?? ''),
+    enabled: !!user?.id,
+    refetchOnWindowFocus: false,
+  })
 
   if (!user) {
     return <div>Loading...</div>

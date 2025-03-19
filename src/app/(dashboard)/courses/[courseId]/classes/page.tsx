@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import api from '@/app/libs/axios'
 import { useToast } from '@/hooks/use-toast'
 import {

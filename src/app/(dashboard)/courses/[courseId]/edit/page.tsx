@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery, useQueryClient } from 'react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/app/libs/axios'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -45,10 +45,7 @@ export default function EditCoursePage() {
       const { data } = await api.get(`/api/courses/${courseId}`)
       return data
     },
-    onSuccess: (data) => {
-      setFormData(data)
-    }
-  })
+      })
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -56,8 +53,8 @@ export default function EditCoursePage() {
 
     try {
       await api.put(`/api/courses/${courseId}`, formData)
-      await queryClient.invalidateQueries(['courses'])
-      await queryClient.invalidateQueries(['course', courseId])
+      await queryClient.invalidateQueries({ queryKey: ['courses'] })
+      await queryClient.invalidateQueries({ queryKey: ['course', courseId] })
       
       toast({
         title: "Curso actualizado",

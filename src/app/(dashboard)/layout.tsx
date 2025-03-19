@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { DashboardSidebar } from '@/components/Dashboard/Sidebar'
 import { DashboardHeader } from '@/components/Dashboard/Header'
-import { QueryClient, QueryClientProvider } from 'react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from "next/navigation"
 

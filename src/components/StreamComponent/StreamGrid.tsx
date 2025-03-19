@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -35,23 +35,23 @@ const StreamSkeleton = () => (
 export const StreamGrid = () => {
   const router = useRouter()
   
-  const { data: streams, isLoading } = useQuery<Stream[]>(
-    'active-streams',
-    async () => {
-      const { data } = await api.get('/api/stream/live');
-      console.log('🔄 Streams cargados:', data);
-      return data;
-    },
-    {
-      refetchInterval: 30000,
-      refetchOnWindowFocus: false,
-      staleTime: 10000,
-      retry: 1,
-      onError: (error) => {
-        console.error('Error al cargar streams:', error)
+  const { data: streams, isLoading } = useQuery<Stream[]>({
+    queryKey: ['active-streams'],
+    queryFn: async () => {
+      try {
+        const { data } = await api.get('/api/stream/live');
+        console.log('🔄 Streams cargados:', data);
+        return data;
+      } catch (error) {
+        console.error('Error al cargar streams:', error);
+        throw error;
       }
-    }
-  )
+    },
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    staleTime: 10000,
+    retry: 1
+  })
 
   if (isLoading) {
     return (

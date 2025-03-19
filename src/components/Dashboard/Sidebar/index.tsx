@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/AuthContext'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import api from '@/app/libs/axios'
 import {
   Sidebar,
@@ -54,16 +54,14 @@ export const DashboardSidebar = () => {
     return menuPaths[path] || 'live'
   }, [pathname])
 
-  const { data: streamData } = useQuery<StreamData[]>(
-    ['streams', 'live'],
-    async () => {
+  const { data: streamData } = useQuery<StreamData[]>({
+    queryKey: ['streams', 'live'],
+    queryFn: async () => {
       const { data } = await api.get('/api/streams/live')
       return data
     },
-    {
-      enabled: !!user?.id
-    }
-  )
+    enabled: !!user?.id
+  })
 
   const handleMenuClick = (menu: MenuValues) => {
     setOpenMobile(false)

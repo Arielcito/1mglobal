@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { StreamPlayer, StreamSkeleton } from '@/components/StreamComponent/StreamPlayer'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import StreamingLayout from '../../layout'
 import type { Stream } from '@/types/stream'
 import api from '@/app/libs/axios'
@@ -14,37 +14,29 @@ const StreamContent = () => {
   const { user } = useAuth()
   const streamId = params.streamId as string
 
-  const { data: streamData, isLoading: streamLoading } = useQuery<Stream>(
-    ['stream', streamId],
-    async () => {
+  const { data: streamData, isLoading: streamLoading } = useQuery<Stream>({
+    queryKey: ['stream', streamId],
+    queryFn: async () => {
       const { data } = await api.get(`/api/stream/live/${streamId}`)
-
       return data
     },
-    {
-      enabled: !!streamId,
-      staleTime: 1000 * 60 * 5 // 5 minutos
-    }
-  )
+    enabled: !!streamId,
+    staleTime: 1000 * 60 * 5 // 5 minutos
+  })
 
-  const { data: tokenData, isLoading: tokenLoading } = useQuery(
-    ['stream-token', streamData?.name],
-    async () => {
-
+  const { data: tokenData, isLoading: tokenLoading } = useQuery({
+    queryKey: ['stream-token', streamData?.name],
+    queryFn: async () => {
       const { data } = await api.post('/api/stream/viewer-token', {
         room_name: streamData?.name
       })
-
       return {
         token: data.token,
         ws_url: data.ws_url
       }
     },
-    {
-      enabled: !!streamData?.name,
-      staleTime: 1000 * 60 * 5 // 5 minutos
-    }
-  )
+    enabled: !!streamData?.name
+  })
 
   if (streamLoading || !streamData) {
     return <StreamSkeleton />
