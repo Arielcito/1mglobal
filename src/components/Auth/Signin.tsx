@@ -39,19 +39,19 @@ const Signin = () => {
           title: "¡Bienvenido!",
           description: "Has iniciado sesión correctamente"
         });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error de autenticación",
+          description: "Email o contraseña incorrectos. Por favor, verifica tus datos."
+        });
       }
       
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : typeof error === 'object' && error !== null && 'response' in error
-          ? (error.response as { data?: { message?: string } })?.data?.message || 'Error al iniciar sesión'
-          : "Credenciales incorrectas. Por favor, verifique sus datos.";
-
       toast({
         variant: "destructive",
         title: "Error de autenticación",
-        description: errorMessage
+        description: "Email o contraseña incorrectos. Por favor, verifica tus datos."
       });
     } finally {
       setIsLoading(false);

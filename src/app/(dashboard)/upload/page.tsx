@@ -209,17 +209,23 @@ export default function UploadClassPage() {
     try {
       const { data } = await api.post('/api/courses', courseData);
       
-      await queryClient.invalidateQueries({ queryKey: ['courses'] })
+      // Invalidate and refetch courses query
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
       
       toast({
         title: "¡Éxito!",
         description: "El curso se ha creado correctamente"
       });
 
-      setIsCreateCourseModalOpen(false)
-      setFormData(prev => ({ ...prev, courseId: data.id }))
+      setIsCreateCourseModalOpen(false);
+      
+      // Set the newly created course as selected
+      setFormData(prev => ({ 
+        ...prev, 
+        courseId: data.course_id 
+      }));
     } catch (error) {
-      console.error('Error al crear el curso:', error)
+      console.error('Error al crear el curso:', error);
       const axiosError = error as AxiosError<{ message: string }>;
       toast({
         variant: "destructive",

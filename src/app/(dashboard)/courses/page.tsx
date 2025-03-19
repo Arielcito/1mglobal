@@ -90,13 +90,16 @@ export default function CoursesPage() {
 
   const handleCreateCourse = async (courseData: CreateCourseInput) => {
     try {
+      console.log("courseData", courseData)
       await api.post('/api/courses', courseData)
       toast({
         title: "Curso creado",
         description: "El curso ha sido creado exitosamente"
       })
       setIsCreateModalOpen(false)
-      refetch()
+      setTimeout(() => {
+        refetch()
+      }, 500)
     } catch (error) {
       toast({
         variant: "destructive",
