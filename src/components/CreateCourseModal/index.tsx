@@ -140,6 +140,7 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
   }
 
   const handleClose = () => {
+    // test
     handleCleanForm()
     onClose()
   }
