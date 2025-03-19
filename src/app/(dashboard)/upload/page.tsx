@@ -48,7 +48,7 @@ interface UploadClassForm {
   status: ClassStatus
   scheduledAt?: Date
   isLive: boolean
-  videoUrl?: string
+  recordingUrl?: string
   videoType: 'upload' | 'youtube'
 }
 
@@ -82,7 +82,7 @@ export default function UploadClassPage() {
     courseId: 0,
     status: 'DRAFT',
     isLive: false,
-    videoUrl: '',
+    recordingUrl: '',
     videoType: 'upload'
   })
   const [isCreateCourseModalOpen, setIsCreateCourseModalOpen] = useState(false)
@@ -118,7 +118,7 @@ export default function UploadClassPage() {
     setIsUploading(true);
 
     try {
-      let videoUrl = formData.videoUrl;
+      let recordingUrl = formData.recordingUrl;
 
       if (formData.videoType === 'upload') {
         if (!videoFile) {
@@ -142,10 +142,10 @@ export default function UploadClassPage() {
           return;
         }
 
-        videoUrl = uploadResult[0].url;
+        recordingUrl = uploadResult[0].url;
       } else {
         // Validar URL de YouTube
-        if (!formData.videoUrl) {
+        if (!formData.recordingUrl) {
           toast({
             variant: "destructive",
             title: "Error",
@@ -159,7 +159,7 @@ export default function UploadClassPage() {
       const { data } = await api.post("/api/classes", {
         ...formData,
         duration: formData.duration ? Number.parseInt(formData.duration.toString(), 10) : null,
-        videoUrl,
+        recordingUrl,
       });
 
       toast({
@@ -178,7 +178,7 @@ export default function UploadClassPage() {
         courseId: 0,
         status: 'DRAFT',
         isLive: false,
-        videoUrl: '',
+        recordingUrl: '',
         videoType: 'upload'
       });
 
@@ -347,9 +347,9 @@ export default function UploadClassPage() {
                   <div className="space-y-4">
                     <Input
                       placeholder="Ingresa la URL del video (YouTube, Vimeo, etc.)"
-                      value={formData.videoUrl}
+                      value={formData.recordingUrl}
                       onChange={(e) => 
-                        setFormData(prev => ({ ...prev, videoUrl: e.target.value }))
+                        setFormData(prev => ({ ...prev, recordingUrl: e.target.value }))
                       }
                     />
                     <p className="text-sm text-muted-foreground">
@@ -410,7 +410,7 @@ export default function UploadClassPage() {
                   type="number"
                   value={formData.duration || ''}
                   onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value) : undefined;
+                    const value = e.target.value ? Number.parseInt(e.target.value) : undefined;
                     setFormData(prev => ({
                       ...prev,
                       duration: value
@@ -498,7 +498,7 @@ export default function UploadClassPage() {
               disabled={
                 isUploading || 
                 isUploadingVideo || 
-                (formData.videoType === 'upload' ? !videoFile : !formData.videoUrl) || 
+                (formData.videoType === 'upload' ? !videoFile : !formData.recordingUrl) || 
                 !formData.courseId
               }
             >
