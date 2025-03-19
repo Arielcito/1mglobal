@@ -119,18 +119,6 @@ export default function EditCoursePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Precio</Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  value={formData.price || ''}
-                  onChange={handleInputChange}
-                  placeholder="99.99"
-                  required
-                />
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="level">Nivel</Label>

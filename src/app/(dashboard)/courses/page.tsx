@@ -135,7 +135,6 @@ export default function CoursesPage() {
                   <TableHead>Título</TableHead>
                   <TableHead>Nivel</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Precio</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -153,7 +152,6 @@ export default function CoursesPage() {
                         {course.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>${course.price}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

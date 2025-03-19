@@ -25,7 +25,7 @@ type Course = {
   course_id: number
   title: string
   description: string
-  image_url: string
+  imageUrl: string
   price: number
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
   category?: {
@@ -38,6 +38,11 @@ type Course = {
 const fetchCourses = async (): Promise<Course[]> => {
   try {
     const { data } = await api.get('/api/courses')
+    console.log("Courses data:", data.map((course: Course) => ({
+      id: course.course_id,
+      title: course.title,
+      imageUrl: course.imageUrl
+    })))
     return data
   } catch (error) {
     throw new Error('Error al cargar los cursos')
@@ -46,6 +51,7 @@ const fetchCourses = async (): Promise<Course[]> => {
 
 const fetchClassesForCourse = async (courseId: number): Promise<Class[]> => {
   try {
+    console.log("courseId", courseId)
     const { data } = await api.get(`/api/classes/course/${courseId}`)
     return data
   } catch (error) {
@@ -116,12 +122,23 @@ export function CoursesGrid() {
           <Card>
             <CardHeader className="p-0">
               <div className="relative aspect-video">
-                <Image
-                  src={course.image_url}
-                  alt={course.title}
-                  fill
-                  className="object-cover rounded-t-lg"
-                />
+                {course.imageUrl && course.imageUrl.length > 0 ? (
+                  <Image
+                    src={course.imageUrl}
+                    alt={course.title}
+                    fill
+                    className="object-cover rounded-t-lg"
+                    onError={(e) => {
+                      console.error('Image failed to load:', course.imageUrl);
+                      console.error('Error event:', e);
+                    }}
+                    priority
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 rounded-t-lg flex items-center justify-center">
+                    <span className="text-gray-400">No image</span>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-4">

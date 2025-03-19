@@ -56,7 +56,7 @@ interface Course {
   course_id: number
   title: string
   description: string
-  image_url: string
+  imageUrl: string
   price: number
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
@@ -181,12 +181,23 @@ const CourseDetailPage = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row gap-6">
             <div className="relative w-full md:w-1/3 aspect-video">
-              <Image
-                src={course.image_url}
-                alt={course.title}
-                fill
-                className="object-cover rounded-lg"
-              />
+              {course.imageUrl && course.imageUrl.length > 0 ? (
+                <Image
+                  src={course.imageUrl}
+                  alt={course.title}
+                  fill
+                  className="object-cover rounded-lg"
+                  onError={(e) => {
+                    console.error('Image failed to load:', course.imageUrl);
+                    console.error('Error event:', e);
+                  }}
+                  priority
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-400">No image</span>
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <div className="flex justify-between items-start">
@@ -197,7 +208,6 @@ const CourseDetailPage = () => {
                 <Badge className="ml-2">{course.level}</Badge>
               </div>
               <div className="mt-4 flex gap-2">
-                <Badge variant="outline">Precio: ${course.price}</Badge>
                 <Badge variant="secondary">{course.classes?.length || 0} clases</Badge>
               </div>
             </div>

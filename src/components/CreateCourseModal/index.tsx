@@ -225,17 +225,6 @@ export const CreateCourseModal = ({ isOpen, onClose, onCreateCourse }: Props) =>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Precio</Label>
-            <Input
-              id="price"
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData(prev => ({ ...prev, price: Number(e.target.value) }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="level">Nivel</Label>
             <Select
               value={formData.level}
