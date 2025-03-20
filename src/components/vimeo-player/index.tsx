@@ -6,6 +6,27 @@ interface VimeoPlayerProps {
   className?: string
 }
 
+// Declare Vimeo types
+declare global {
+  interface Window {
+    Vimeo: {
+      Player: new (element: HTMLIFrameElement, options: {
+        id: string
+        width?: string
+        height?: string
+        autoplay?: boolean
+        autopause?: boolean
+        badge?: number
+        player_id?: number
+        app_id?: number
+      }) => {
+        on: (event: 'ready' | 'error' | 'loaded', callback: (error?: Error) => void) => void
+        destroy: () => void
+      }
+    }
+  }
+}
+
 const VimeoPlayer = ({ videoId, className = '' }: VimeoPlayerProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [isScriptLoaded, setIsScriptLoaded] = useState(false)
@@ -31,7 +52,7 @@ const VimeoPlayer = ({ videoId, className = '' }: VimeoPlayerProps) => {
         console.log('Vimeo player is ready')
       })
 
-      player.on('error', (error) => {
+      player.on('error', (error?: Error) => {
         console.error('Vimeo player error:', error)
       })
 
