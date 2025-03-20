@@ -48,14 +48,16 @@ export default function DashboardLayout({ children }: LayoutProps) {
 
   if (isLoading || isRedirecting) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gradient-to-b from-zinc-900 to-zinc-950">
-        <div className="flex flex-col items-center gap-4">
+      <QueryClientProvider client={queryClient}>
+        <div className="flex h-screen w-full items-center justify-center bg-gradient-to-b from-zinc-900 to-zinc-950">
+          <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
           <div className="text-white text-xl">
             {isRedirecting ? "Redirigiendo..." : "Cargando..."}
+            </div>
           </div>
         </div>
-      </div>
+      </QueryClientProvider>
     )
   }
 

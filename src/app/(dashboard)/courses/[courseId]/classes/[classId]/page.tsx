@@ -11,12 +11,19 @@ import { useClass } from '@/hooks/useClass'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
+import VimeoPlayer from '@/components/vimeo-player'
 
 const getVideoProvider = (url: string) => {
-  if (!url) return null;
+  console.log('Processing video URL:', url)
+  
+  if (!url) {
+    console.log('No URL provided')
+    return null;
+  }
 
   // YouTube
   if (url.match(/(?:youtube\.com|youtu\.be)/i)) {
+    console.log('YouTube URL detected')
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
       /^([^&\?\/]+)$/
@@ -24,28 +31,39 @@ const getVideoProvider = (url: string) => {
 
     for (const pattern of patterns) {
       const match = url.match(pattern);
-      if (match) return { provider: 'youtube', id: match[1] };
+      if (match) {
+        console.log('YouTube video ID found:', match[1])
+        return { provider: 'youtube', id: match[1] };
+      }
     }
   }
 
   // Vimeo
   if (url.match(/vimeo\.com/i)) {
+    console.log('Vimeo URL detected')
     const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-    if (match) return { provider: 'vimeo', id: match[1] };
+    if (match) {
+      console.log('Vimeo video ID found:', match[1])
+      return { provider: 'vimeo', id: match[1] };
+    }
   }
 
   // URL directa de video (mp4, etc.)
   if (url.match(/\.(mp4|webm|ogg)$/i)) {
+    console.log('Direct video URL detected')
     return { provider: 'direct', url };
   }
 
+  console.log('No valid video provider found')
   return null;
 };
 
 const VideoPlayer = ({ url }: { url: string }) => {
+  console.log('VideoPlayer received URL:', url)
   const videoInfo = getVideoProvider(url);
   
   if (!videoInfo) {
+    console.log('No valid video info found')
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
         <p className="text-primary font-medium">URL de video no válida</p>
@@ -53,8 +71,11 @@ const VideoPlayer = ({ url }: { url: string }) => {
     );
   }
 
+  console.log('Video info:', videoInfo)
+
   switch (videoInfo.provider) {
     case 'youtube':
+      console.log('Rendering YouTube player')
       return (
         <iframe
           title="Video de la clase"
@@ -67,18 +88,11 @@ const VideoPlayer = ({ url }: { url: string }) => {
       );
 
     case 'vimeo':
-      return (
-        <iframe
-          title="Video de la clase"
-          src={`https://player.vimeo.com/video/${videoInfo.id}?autoplay=0`}
-          className="absolute inset-0 w-full h-full"
-          loading="lazy"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-        />
-      );
+      console.log('Rendering Vimeo player with ID:', videoInfo.id)
+      return videoInfo.id ? <VimeoPlayer videoId={videoInfo.id} /> : null;
 
     case 'direct':
+      console.log('Rendering direct video player')
       return (
         <video
           className="absolute inset-0 w-full h-full"
@@ -87,11 +101,13 @@ const VideoPlayer = ({ url }: { url: string }) => {
           preload="metadata"
         >
           <source src={videoInfo.url} />
+          <track kind="captions" src="" label="Spanish captions" />
           Tu navegador no soporta la reproducción de videos.
         </video>
       );
 
     default:
+      console.log('Unknown video provider')
       return (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
           <p className="text-primary font-medium">Formato de video no soportado</p>
