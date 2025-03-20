@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface Class {
-  class_id: number;
+  classId: number;
   course_id: number;
   title: string;
   description: string;
@@ -103,9 +103,9 @@ export default function CourseClassesPage() {
     enabled: !!courseId
   })
 
-  const handleDelete = async (class_id: number) => {
+  const handleDelete = async (classId: number) => {
     try {
-      await api.delete(`/api/courses/${courseId}/classes/${class_id}`)
+      await api.delete(`/api/classes/${classId}`)
       toast({
         title: "Clase eliminada",
         description: "La clase ha sido eliminada exitosamente"
@@ -185,67 +185,70 @@ export default function CourseClassesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {course?.classes?.map((classItem) => (
-                  <TableRow key={classItem.class_id}>
-                    <TableCell>{classItem.order}</TableCell>
-                    <TableCell className="font-medium">{classItem.title}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadge(classItem.status)}>
-                        {classItem.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{classItem.duration ? `${classItem.duration} min` : 'N/A'}</TableCell>
-                    <TableCell>
-                      <Badge variant={classItem.is_live ? "default" : "secondary"}>
-                        {classItem.is_live ? "En vivo" : "Grabada"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {classItem.is_live ? (
+                {course?.classes?.map((classItem) => {
+                  console.log('📝 Class Item:', classItem)
+                  return (
+                    <TableRow key={classItem.classId}>
+                      <TableCell>{classItem.order}</TableCell>
+                      <TableCell className="font-medium">{classItem.title}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadge(classItem.status)}>
+                          {classItem.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{classItem.duration ? `${classItem.duration} min` : 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant={classItem.is_live ? "default" : "secondary"}>
+                          {classItem.is_live ? "En vivo" : "Grabada"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {classItem.is_live ? (
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/stream/${classItem.classId}`)}
+                                className="cursor-pointer"
+                              >
+                                <Play className="mr-2 h-4 w-4" />
+                                Ir al stream
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => router.push('/upload')}
+                                className="cursor-pointer"
+                              >
+                                <Video className="mr-2 h-4 w-4" />
+                                Ver clase
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
-                              onClick={() => router.push(`/stream/${classItem.class_id}`)}
+                              onClick={() => router.push(`/courses/${courseId}/classes/${classItem.classId}/edit`)}
                               className="cursor-pointer"
                             >
-                              <Play className="mr-2 h-4 w-4" />
-                              Ir al stream
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
                             </DropdownMenuItem>
-                          ) : (
                             <DropdownMenuItem
-                              onClick={() => router.push(`/upload`)}
-                              className="cursor-pointer"
+                              onClick={() => handleDelete(classItem.classId)}
+                              className="cursor-pointer text-red-600"
                             >
-                              <Video className="mr-2 h-4 w-4" />
-                              Ver clase
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            onClick={() => router.push(`/courses/${courseId}/classes/${classItem.class_id}/edit`)}
-                            className="cursor-pointer"
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(classItem.class_id)}
-                            className="cursor-pointer text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}

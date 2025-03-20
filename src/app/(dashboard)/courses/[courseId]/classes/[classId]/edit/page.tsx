@@ -17,22 +17,28 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Label } from '@/components/ui/label'
+import { AxiosError } from 'axios'
 
 interface Class {
-  classId: number
-  courseId: number
+  class_id: number
+  course_id: number
   title: string
   description: string
-  scheduledAt: string | null
-  isLive: boolean
-  recordingUrl: string | null
+  scheduled_at: string | null
+  is_live: boolean
+  recording_url: string | null
   content: string | null
-  createdAt: string
   duration: number
   order: number
-  publishedAt: string | null
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
-  updatedAt: string
+  created_at: string
+  updated_at: string
+  published_at: string | null
+}
+
+interface ApiError {
+  message: string
+  status: number
 }
 
 export default function EditClassPage() {
@@ -45,44 +51,72 @@ export default function EditClassPage() {
   const [formData, setFormData] = useState<Partial<Class>>({})
   const [isLoading, setIsLoading] = useState(false)
 
-  const { data: classData } = useQuery<Class>({
+  const { data: classData, error: classError } = useQuery<Class, AxiosError<ApiError>>({
     queryKey: ['class', classId],
     queryFn: async () => {
       const { data } = await api.get(`/api/classes/${classId}`)
-      const formattedData = {
-        ...data,
-        classId: data.class_id || data.classId,
-        courseId: data.course_id || data.courseId,
-        scheduledAt: data.scheduled_at || data.scheduledAt,
-        isLive: data.is_live || data.isLive,
-        recordingUrl: data.recording_url || data.recordingUrl,
-        publishedAt: data.published_at || data.publishedAt,
-        updatedAt: data.updated_at || data.updatedAt,
-        createdAt: data.created_at || data.createdAt,
-      }
-      return formattedData
-    },
+      return data
+    }
   })
+
+  useEffect(() => {
+    if (classData) {
+      setFormData(classData)
+    }
+  }, [classData])
+
+  useEffect(() => {
+    if (classError) {
+      const errorMessage = classError.response?.data?.message || "No se pudo cargar la clase"
+      const errorTitle = classError.response?.status === 401 
+        ? "No autorizado" 
+        : classError.response?.status === 403 
+          ? "Acceso denegado" 
+          : classError.response?.status === 404 
+            ? "Clase no encontrada" 
+            : "Error"
+
+      toast({
+        variant: "destructive",
+        title: errorTitle,
+        description: errorMessage
+      })
+    }
+  }, [classError, toast])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      await api.put(`/api/classes/${classId}`, formData)
-      await queryClient.invalidateQueries({ queryKey: ['classes'] })
-      await queryClient.invalidateQueries({ queryKey: ['class', classId] }  )
-      
-      toast({
-        title: "Clase actualizada",
-        description: "Los cambios han sido guardados exitosamente"
-      })
-      router.back()
+      const response = await api.put(`/api/classes/${classId}`, formData)
+
+      if (response.status === 200) {
+        await queryClient.invalidateQueries({ queryKey: ['classes'] })
+        await queryClient.invalidateQueries({ queryKey: ['class', classId] })
+        
+        toast({
+          title: "¡Éxito!",
+          description: "Los cambios han sido guardados exitosamente",
+          variant: "default"
+        })
+        router.push(`/courses/${courseId}/classes`)
+      }
     } catch (error) {
+      const axiosError = error as AxiosError<ApiError>
+      const errorMessage = axiosError.response?.data?.message || "No se pudieron guardar los cambios"
+      const errorTitle = axiosError.response?.status === 401 
+        ? "No autorizado" 
+        : axiosError.response?.status === 403 
+          ? "Acceso denegado" 
+          : axiosError.response?.status === 404 
+            ? "Clase no encontrada" 
+            : "Error"
+
       toast({
         variant: "destructive",
-        title: "Error al actualizar",
-        description: "No se pudieron guardar los cambios. Por favor, intenta nuevamente."
+        title: errorTitle,
+        description: errorMessage
       })
     } finally {
       setIsLoading(false)
@@ -102,8 +136,53 @@ export default function EditClassPage() {
   const handleDateChange = (value: string) => {
     setFormData(prev => ({
       ...prev,
-      scheduledAt: value
+      scheduled_at: value
     }))
+  }
+
+  if (!classData) {
+    if (classError) {
+      return (
+        <div className="container mx-auto py-10">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div className="text-destructive text-2xl">⚠️</div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-destructive">
+                  {classError.response?.status === 401 
+                    ? "No autorizado" 
+                    : classError.response?.status === 403 
+                      ? "Acceso denegado" 
+                      : classError.response?.status === 404 
+                        ? "Clase no encontrada" 
+                        : "Error al cargar la clase"}
+                </h3>
+                <p className="text-muted-foreground mt-2">
+                  {classError.response?.data?.message || "No se pudo cargar la clase"}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push(`/courses/${courseId}/classes`)}
+                className="mt-4"
+              >
+                Volver a clases
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
+    return (
+      <div className="container mx-auto py-10">
+        <Card>
+          <CardContent className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -141,12 +220,12 @@ export default function EditClassPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduledAt">Fecha programada</Label>
+                <Label htmlFor="scheduled_at">Fecha programada</Label>
                 <Input
-                  id="scheduledAt"
-                  name="scheduledAt"
+                  id="scheduled_at"
+                  name="scheduled_at"
                   type="datetime-local"
-                  value={formData.scheduledAt?.slice(0, 16) || ''}
+                  value={formData.scheduled_at?.slice(0, 16) || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -198,11 +277,11 @@ export default function EditClassPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="recordingUrl">URL de la grabación</Label>
+              <Label htmlFor="recording_url">URL de la grabación</Label>
               <Input
-                id="recordingUrl"
-                name="recordingUrl"
-                value={formData.recordingUrl || ''}
+                id="recording_url"
+                name="recording_url"
+                value={formData.recording_url || ''}
                 onChange={handleInputChange}
                 placeholder="https://ejemplo.com/grabacion.mp4"
               />
