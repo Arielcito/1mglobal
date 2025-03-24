@@ -190,35 +190,11 @@ const StreamModal = ({ session }: StreamModalProps) => {
           <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {activeStream?.isLive ? 'Stream Activo' : ingressResponse ? 'Configuración del Stream' : 'Configurar Nuevo Stream'}
+                {ingressResponse ? 'Configuración del Stream' : 'Configurar Nuevo Stream'}
               </DialogTitle>
             </DialogHeader>
             
-            {activeStream?.isLive ? (
-              <div className="space-y-4 mt-4">
-                <div className="flex items-center space-x-2 text-yellow-500">
-                  <StopCircle className="h-5 w-5" />
-                  <span className="font-medium">Tienes un stream activo</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  ¿Estás seguro de que deseas terminar el stream actual?
-                </p>
-                <div className="flex justify-end space-x-2">
-                  <DialogTrigger asChild>
-                    <Button variant="outline" type="button">
-                      Cancelar
-                    </Button>
-                  </DialogTrigger>
-                  <Button 
-                    onClick={handleTerminateStream} 
-                    disabled={stopStreamMutation.isPending} 
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    {stopStreamMutation.isPending ? "Terminando..." : "Terminar Stream"}
-                  </Button>
-                </div>
-              </div>
-            ) : !ingressResponse ? (
+            {!ingressResponse ? (
               <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label htmlFor="streamRole" className="text-sm font-medium">
